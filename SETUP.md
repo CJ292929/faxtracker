@@ -14,14 +14,41 @@ Create a local `.env` (never committed) with these names, values from the
 - `SUPABASE_PROJECT_ID`
 - `SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` — server-only (used by `src/integrations/supabase/client.server.ts`); never expose via a `VITE_`-prefixed name or client code.
 - `VITE_SUPABASE_PROJECT_ID`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_SUPABASE_URL`
+- `LOVABLE_CRON_SECRET` — validates scheduled/cron request auth.
+- `LOVABLE_CRON_SECRET_PREVIOUS` — optional, allows in-flight rotation of the cron secret.
 
 Migrations under `drizzle/migrations` additionally read `LOVABLE_DB_MIGRATION_URL`
 when run via `drizzle-kit` (see `drizzle.config.ts`). This project has not applied
 migrations to the `iobrhrefxeirrmbnaiob` project yet — see the initial-admin
 provisioning note below before doing so.
+
+Set all of the above (except `LOVABLE_DB_MIGRATION_URL`, which is a local/CI-only
+migration credential) as Vercel Project → Settings → Environment Variables. Do not
+put `SUPABASE_SERVICE_ROLE_KEY` in a `VITE_`-prefixed variable or in any value that
+reaches the client bundle.
+
+## Vercel build
+
+This app builds through Nitro's native `vercel` preset (Vercel Build Output API
+v3), configured in `vite.config.ts` (`nitro: { preset: "vercel" }`), overriding
+the shared `@lovable.dev/vite-tanstack-config` default of `cloudflare-module`.
+
+- **Build command:** `bun run build` (equivalently `vite build`; the Nitro/Vercel
+  step runs automatically as part of this, no separate command needed).
+- **Output directory:** none to configure manually — Vercel's framework
+  auto-detection reads the build output directly from `.vercel/output`
+  (`config.json` version 3, a `static/` asset directory, and the
+  `functions/__server.func` Node serverless function). Do not set a Vercel
+  "Output Directory" override; leave it on the default so Vercel picks up
+  `.vercel/output` as-is.
+- **Install command:** `bun install` (project is pinned to bun via `bun.lock`).
+- **Framework preset in Vercel dashboard:** "Other" — do not select the Next.js
+  preset; Vercel will use the pre-built `.vercel/output` directory as-is once it
+  detects the Build Output API structure.
 
 ## Package manager
 
@@ -32,11 +59,16 @@ not npm/pnpm/yarn, to avoid lockfile drift.
 
 ```sh
 bun install
-bunx tsc --noEmit   # typecheck
-bun run lint        # eslint (currently fails on pre-existing prettier/quote-style findings, not logic errors)
-bun run build        # vite + nitro build
-bun run verify:admin-bootstrap   # static checks for this invariant, see below
+bunx tsc --noEmit               # typecheck
+bun run lint                    # eslint (repo-wide baseline still has pre-existing findings outside touched files)
+bun run build                   # vite + nitro build, emits .vercel/output
+bun run verify:admin-bootstrap  # static checks for this invariant, see below
 ```
+
+`verify:admin-bootstrap` is a static source/migration-file check only. It cannot
+confirm migration `0003_remove_bootstrap_first_admin.sql` was actually applied to
+any database — run the SQL verification query in the "Initial admin provisioning"
+section below against the target database to confirm that.
 
 ## Resolved: first-signup-becomes-admin
 
