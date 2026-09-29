@@ -14,7 +14,18 @@ import {
   listAccounts,
   type AccountListRow,
 } from "@/lib/create-login.server";
+import { changeStaffRole } from "@/lib/change-role.server";
 import { USERNAME_RE } from "@/lib/username-login-core";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
@@ -255,6 +266,10 @@ function Settings() {
     [logs, setLogs] = useState<AuditRow[]>([]),
     [saving, setSaving] = useState("");
   const [accounts, setAccounts] = useState<AccountListRow[]>([]);
+  const [pendingChange, setPendingChange] = useState<{
+    target: RoleRow;
+    next: "admin" | "staff";
+  } | null>(null);
   const refreshAccounts = () => {
     void listAccounts()
       .then(setAccounts)
@@ -280,29 +295,24 @@ function Settings() {
       refreshAccounts();
     }
   }, [role]);
-  async function changeRole(target: RoleRow, next: "admin" | "staff") {
+  async function confirmChangeRole() {
+    if (!pendingChange) return;
+    const { target, next } = pendingChange;
     setSaving(target.id);
-    const { error } = await supabase.from("user_roles").update({ role: next }).eq("id", target.id);
-    if (error) {
-      setSaving("");
-      toast.error(error.message);
+    const result = await changeStaffRole({ data: { targetUserId: target.user_id, newRole: next } });
+    setSaving("");
+    setPendingChange(null);
+    if (!result.ok) {
+      toast.error(result.error);
       return;
     }
-    // Best-effort audit trail: role changes previously left no record, which
-    // made an accidental change (wrong row, manual testing) unrecoverable to trace.
-    await supabase
+    setRoles(roles.map((r) => (r.id === target.id ? { ...r, role: result.newRole } : r)));
+    void supabase
       .from("audit_logs")
-      .insert({
-        user_id: user.id,
-        action: "role_changed",
-        description: `Changed ${target.username ?? target.user_id} from ${target.role} to ${next}`,
-      })
-      .then(
-        () => {},
-        () => {},
-      );
-    setSaving("");
-    setRoles(roles.map((r) => (r.id === target.id ? { ...r, role: next } : r)));
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .then(({ data }) => setLogs(data ?? []));
     toast.success("Staff role updated.");
   }
   return (
@@ -352,7 +362,9 @@ function Settings() {
                     className="field w-auto"
                     value={r.role}
                     disabled={saving === r.id || r.user_id === user.id}
-                    onChange={(e) => changeRole(r, e.target.value as "admin" | "staff")}
+                    onChange={(e) =>
+                      setPendingChange({ target: r, next: e.target.value as "admin" | "staff" })
+                    }
                   >
                     <option value="admin">Admin</option>
                     <option value="staff">Staff</option>
@@ -417,6 +429,40 @@ function Settings() {
           </div>
         </section>
       )}
+      <AlertDialog
+        open={pendingChange !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingChange(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change staff role?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingChange && (
+                <>
+                  This changes{" "}
+                  <strong>{pendingChange.target.username ?? pendingChange.target.user_id}</strong>{" "}
+                  from <strong className="capitalize">{pendingChange.target.role}</strong> to{" "}
+                  <strong className="capitalize">{pendingChange.next}</strong>.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingChange(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving !== ""}
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmChangeRole();
+              }}
+            >
+              {saving !== "" ? "Saving…" : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Workspace>
   );
 }

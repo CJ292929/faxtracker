@@ -50,6 +50,20 @@
       "when": 1790652500000,
       "tag": "0006_staff_patient_writes_recoverable_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790700733868,
+      "tag": "0007_confirm_and_audit_role_changes",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790701092592,
+      "tag": "0008_revoke_anon_change_user_role",
+      "breakpoints": true
     }
   ]
 }

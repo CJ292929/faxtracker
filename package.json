@@ -14,7 +14,9 @@
     "verify:role-change-audit": "node scripts/verify-role-change-audit.mjs",
     "test:role-boundary": "node --experimental-strip-types scripts/test-role-boundary.mjs",
     "test:login-form-state": "node --experimental-strip-types scripts/test-login-form-state.mjs",
-    "test:create-login": "node --experimental-strip-types scripts/test-create-login.mjs"
+    "test:create-login": "node --experimental-strip-types scripts/test-create-login.mjs",
+    "test:change-role": "node --experimental-strip-types scripts/test-change-role.mjs",
+    "verify:role-change-live": "node scripts/test-role-change-live.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
