@@ -71,6 +71,13 @@
       "when": 1790711000000,
       "tag": "0009_add_document_md_name",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790720000000,
+      "tag": "0010_create_patient_documents_bucket",
+      "breakpoints": true
     }
   ]
 }

@@ -20,7 +20,9 @@
     "verify:bulk-upload-permissions-live": "node scripts/test-bulk-upload-permissions-live.mjs",
     "verify:bulk-upload-e2e-live": "node scripts/e2e-bulk-upload-live.mjs",
     "verify:role-change-live": "node scripts/test-role-change-live.mjs",
-    "verify:patients-actions-column-live": "node scripts/test-patients-actions-column-live.mjs"
+    "verify:patients-actions-column-live": "node scripts/test-patients-actions-column-live.mjs",
+    "verify:document-fax-attempt-live": "node scripts/p3p5-document-fax-attempt-live.mjs",
+    "verify:document-rls-boundary-live": "node scripts/p3p5-rls-boundary-live.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -99,6 +101,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "nitro": "3.0.260603-beta",
+    "playwright": "^1.63.0",
     "postgres": "^3.4.9",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
