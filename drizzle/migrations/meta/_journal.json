@@ -64,6 +64,13 @@
       "when": 1790701092592,
       "tag": "0008_revoke_anon_change_user_role",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790711000000,
+      "tag": "0009_add_document_md_name",
+      "breakpoints": true
     }
   ]
 }

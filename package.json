@@ -19,7 +19,8 @@
     "test:bulk-upload": "node --experimental-strip-types scripts/test-bulk-upload.mjs",
     "verify:bulk-upload-permissions-live": "node scripts/test-bulk-upload-permissions-live.mjs",
     "verify:bulk-upload-e2e-live": "node scripts/e2e-bulk-upload-live.mjs",
-    "verify:role-change-live": "node scripts/test-role-change-live.mjs"
+    "verify:role-change-live": "node scripts/test-role-change-live.mjs",
+    "verify:patients-actions-column-live": "node scripts/test-patients-actions-column-live.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

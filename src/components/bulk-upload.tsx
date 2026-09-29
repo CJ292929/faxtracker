@@ -10,6 +10,7 @@ import {
   TEMPLATE_HEADERS,
   assignPatientIds,
   markDuplicatesAgainstExisting,
+  normField,
   type BulkRow,
 } from "@/lib/bulk-upload";
 import { parseUploadedFile } from "@/lib/bulk-upload-xlsx";
@@ -88,7 +89,9 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
     const patientId = row.patientId;
     const { data, error } = await supabase
       .from("patients")
-      .select("first_name, last_name, date_of_birth")
+      .select(
+        "first_name, last_name, date_of_birth, phone, insurance, insurance_member_id, referring_physician",
+      )
       .eq("patient_id", patientId)
       .maybeSingle();
     if (error) {
@@ -101,11 +104,18 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
         detail: `${reason} Not yet created — retry will reuse Patient ID ${patientId}.`,
       };
     }
-    const matches =
-      data.first_name === row.first_name &&
-      data.last_name === row.last_name &&
-      data.date_of_birth === row.date_of_birth;
-    if (matches) {
+    // Every mapped imported field must match the existing row (consistent
+    // trim+lowercase normalization) before treating it as the same import --
+    // a differing field is a conflict, never an overwrite.
+    const fieldsMatch =
+      normField(data.first_name) === normField(row.first_name) &&
+      normField(data.last_name) === normField(row.last_name) &&
+      (data.date_of_birth ?? "") === (row.date_of_birth ?? "") &&
+      normField(data.phone) === normField(row.phone) &&
+      normField(data.insurance) === normField(row.insurance) &&
+      normField(data.insurance_member_id) === normField(row.member_id) &&
+      normField(data.referring_physician) === normField(row.referring_physician);
+    if (fieldsMatch) {
       return { row, outcome: "created", detail: "Verified as already created", patientId };
     }
     return {

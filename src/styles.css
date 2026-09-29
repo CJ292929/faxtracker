@@ -15,4 +15,8 @@
 .data-table th { padding: 13px 16px; background: var(--color-muted); color: var(--color-muted-foreground); font-size: 10px; text-transform: uppercase; font-weight: 800; }
 .data-table td { padding: 15px 16px; border-top: 1px solid var(--color-border); }
 .data-table tbody tr:hover { background: var(--color-background); }
+.data-table th:last-child, .data-table td:last-child { position: sticky; right: 0; box-shadow: -1px 0 0 var(--color-border); }
+.data-table th:last-child { background: var(--color-muted); }
+.data-table td:last-child { background: var(--color-card); }
+.data-table tbody tr:hover td:last-child { background: var(--color-background); }
 @media (prefers-reduced-motion: no-preference) { .fade-in { animation: fade-in .25s ease-out; } @keyframes fade-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } } }

@@ -15,6 +15,11 @@
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
+// Mirrors normField() in src/lib/bulk-upload.ts.
+function normField(v) {
+  return (v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 const env = Object.fromEntries(
   readFileSync(".env", "utf8")
     .split("\n")
@@ -35,11 +40,15 @@ const admin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 const stamp = Date.now();
 const marker = `RETRY${stamp}`;
 
-// Mirrors resolveAmbiguousInsert() in src/components/bulk-upload.tsx.
+// Mirrors resolveAmbiguousInsert() in src/components/bulk-upload.tsx --
+// every mapped imported field must match (consistent trim+lowercase
+// normalization) before treating the existing row as the same import.
 async function resolveAmbiguousInsert(row, reason) {
   const { data, error } = await admin
     .from("patients")
-    .select("first_name, last_name, date_of_birth")
+    .select(
+      "first_name, last_name, date_of_birth, phone, insurance, insurance_member_id, referring_physician",
+    )
     .eq("patient_id", row.patientId)
     .maybeSingle();
   if (error)
@@ -49,11 +58,15 @@ async function resolveAmbiguousInsert(row, reason) {
       outcome: "failed",
       detail: `${reason} Not yet created — retry will reuse ${row.patientId}.`,
     };
-  const matches =
-    data.first_name === row.first_name &&
-    data.last_name === row.last_name &&
-    data.date_of_birth === row.date_of_birth;
-  if (matches) return { outcome: "created", detail: "Verified as already created" };
+  const fieldsMatch =
+    normField(data.first_name) === normField(row.first_name) &&
+    normField(data.last_name) === normField(row.last_name) &&
+    (data.date_of_birth ?? "") === (row.date_of_birth ?? "") &&
+    normField(data.phone) === normField(row.phone) &&
+    normField(data.insurance) === normField(row.insurance) &&
+    normField(data.insurance_member_id) === normField(row.member_id) &&
+    normField(data.referring_physician) === normField(row.referring_physician);
+  if (fieldsMatch) return { outcome: "created", detail: "Verified as already created" };
   return {
     outcome: "conflict",
     detail: `Patient ID ${row.patientId} belongs to a different patient.`,
@@ -65,24 +78,24 @@ async function resolveAmbiguousInsert(row, reason) {
 // (standing in for a commit that happened) while the return path is treated
 // as if the client never saw the response.
 async function insertRow(row, { simulateLostResponse = false } = {}) {
+  const payload = {
+    first_name: row.first_name,
+    last_name: row.last_name,
+    patient_id: row.patientId,
+    date_of_birth: row.date_of_birth,
+    phone: row.phone || null,
+    insurance: row.insurance || null,
+    insurance_member_id: row.member_id || null,
+    referring_physician: row.referring_physician || null,
+  };
   if (simulateLostResponse) {
-    await admin.from("patients").insert({
-      first_name: row.first_name,
-      last_name: row.last_name,
-      patient_id: row.patientId,
-      date_of_birth: row.date_of_birth,
-    });
+    await admin.from("patients").insert(payload);
     // Client's fetch is treated as having failed even though the insert
     // committed -- this is the exact ambiguity insertRow() detects via
     // status === 0 && !error.code.
     return resolveAmbiguousInsert(row, "Network error during insert.");
   }
-  const { error } = await admin.from("patients").insert({
-    first_name: row.first_name,
-    last_name: row.last_name,
-    patient_id: row.patientId,
-    date_of_birth: row.date_of_birth,
-  });
+  const { error } = await admin.from("patients").insert(payload);
   if (!error) return { outcome: "created", detail: "Imported" };
   if (error.code === "23505") return resolveAmbiguousInsert(row, "Patient ID already exists.");
   return { outcome: "failed", detail: error.message };
@@ -174,6 +187,54 @@ async function main() {
     check(
       "retry with the same ID after a genuine failure succeeds",
       retryWithGoodData.outcome === "created",
+    );
+
+    // --- Scenario 4: same Patient ID, same name/DOB, but a mapped field
+    // (Member ID or Insurance) differs. Must stop as a conflict -- matching
+    // on just name+DOB is not enough to treat it as the same import, and
+    // the existing row must never be silently overwritten.
+    const baseRow = {
+      first_name: marker,
+      last_name: "SameNameDob",
+      patientId: `BULK-${marker}D`,
+      date_of_birth: "1990-03-03",
+      phone: "555-1111",
+      insurance: "Medicare",
+      member_id: "MID-ORIGINAL",
+      referring_physician: "Dr. Original",
+    };
+    const seeded = await insertRow(baseRow);
+    check("scenario 4 base row seeded", seeded.outcome === "created");
+
+    const differentMemberId = { ...baseRow, member_id: "MID-DIFFERENT" };
+    const memberIdConflict = await insertRow(differentMemberId);
+    check(
+      "same ID/name/DOB but different Member ID stops as a conflict",
+      memberIdConflict.outcome === "conflict",
+    );
+
+    const differentInsurance = { ...baseRow, insurance: "Aetna" };
+    const insuranceConflict = await insertRow(differentInsurance);
+    check(
+      "same ID/name/DOB but different Insurance stops as a conflict",
+      insuranceConflict.outcome === "conflict",
+    );
+
+    const { data: baseRowAfter } = await admin
+      .from("patients")
+      .select("insurance, insurance_member_id")
+      .eq("patient_id", baseRow.patientId)
+      .maybeSingle();
+    check(
+      "original row's Member ID and Insurance were not overwritten",
+      baseRowAfter?.insurance === "Medicare" &&
+        baseRowAfter?.insurance_member_id === "MID-ORIGINAL",
+    );
+
+    const exactRetry = await insertRow({ ...baseRow });
+    check(
+      "retrying with every mapped field identical is verified as created, not a conflict",
+      exactRetry.outcome === "created",
     );
   } finally {
     await cleanup();

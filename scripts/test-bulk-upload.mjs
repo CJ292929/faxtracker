@@ -11,6 +11,7 @@ import {
   markDuplicatesAgainstExisting,
   generatePatientId,
   assignPatientIds,
+  normField,
 } from "../src/lib/bulk-upload.ts";
 
 let failures = 0;
@@ -151,6 +152,15 @@ assignPatientIds(rosterSession.rows, existingRoster);
 ok(
   "assignPatientIds avoids collision with the currently loaded roster",
   rosterSession.rows[0].patientId !== "BULK-ZZZZZZ",
+);
+
+check("normField trims and lowercases", normField("  Medicare  "), "medicare");
+check("normField collapses internal whitespace", normField("Dr.   Lee"), "dr. lee");
+check("normField treats null/undefined as empty", normField(null), "");
+check(
+  "normField treats different-case values as equal",
+  normField("MID-100") === normField("mid-100"),
+  true,
 );
 
 if (failures) {

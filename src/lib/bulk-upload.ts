@@ -161,6 +161,12 @@ function normName(first: string, last: string): string {
   return `${first} ${last}`.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/** Normalizes a plain text field for equality comparison across imported
+ * rows and existing DB rows: trims, lowercases, and collapses whitespace. */
+export function normField(v: string | null | undefined): string {
+  return (v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 function markDuplicatesInFile(rows: BulkRow[]): void {
   const byMember = new Map<string, number[]>();
   const byName = new Map<string, number[]>();

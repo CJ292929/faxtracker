@@ -91,6 +91,7 @@ export type Database = {
           document_type: string
           id: string
           is_demo: boolean
+          md_name: string | null
           notes: string | null
           patient_id: string
           received: boolean
@@ -116,6 +117,7 @@ export type Database = {
           document_type: string
           id?: string
           is_demo?: boolean
+          md_name?: string | null
           notes?: string | null
           patient_id: string
           received?: boolean
@@ -141,6 +143,7 @@ export type Database = {
           document_type?: string
           id?: string
           is_demo?: boolean
+          md_name?: string | null
           notes?: string | null
           patient_id?: string
           received?: boolean
