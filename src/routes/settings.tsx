@@ -12,7 +12,6 @@ import {
   createStaffOrAdminLogin,
   checkUsernameAvailable,
   listAccounts,
-  listUsernames,
   type AccountListRow,
 } from "@/lib/create-login.server";
 import { changeStaffRole } from "@/lib/change-role.server";
@@ -40,7 +39,6 @@ export const Route = createFileRoute("/settings")({
   }),
   component: Settings,
 });
-type RoleRow = { id: string; user_id: string; role: string; username: string | undefined };
 type AuditRow = {
   id: string;
   user_id: string | null;
@@ -49,7 +47,22 @@ type AuditRow = {
   created_at: string;
 };
 
-function CreateLoginPanel({ onCreated }: { onCreated: () => void }) {
+function RoleBadge({ role }: { role: "admin" | "staff" }) {
+  const tone = role === "admin" ? "bg-gold/15 text-gold" : "bg-info/10 text-info";
+  return (
+    <span
+      className={`inline-flex items-center rounded px-2 py-1 text-[11px] font-bold uppercase ${tone}`}
+    >
+      {role}
+    </span>
+  );
+}
+
+function CreateLoginPanel({
+  onCreated,
+}: {
+  onCreated: (username: string, password: string) => void;
+}) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -116,8 +129,8 @@ function CreateLoginPanel({ onCreated }: { onCreated: () => void }) {
       toast.success(
         `${result.role === "admin" ? "Admin" : "Staff"} login "${result.username}" created.`,
       );
+      onCreated(result.username, password);
       reset();
-      onCreated();
     } catch {
       setMessage("Unable to create this login. Please try again.");
     } finally {
@@ -229,46 +242,109 @@ function CreateLoginPanel({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function AccountsPanel({ accounts }: { accounts: AccountListRow[] }) {
+function StaffAccessTable({
+  accounts,
+  currentUserId,
+  sessionPasswords,
+  revealed,
+  onToggleReveal,
+  saving,
+  onRequestRoleChange,
+}: {
+  accounts: AccountListRow[];
+  currentUserId: string;
+  sessionPasswords: Record<string, string>;
+  revealed: Record<string, boolean>;
+  onToggleReveal: (username: string) => void;
+  saving: string;
+  onRequestRoleChange: (target: AccountListRow, next: "admin" | "staff") => void;
+}) {
+  if (!accounts.length) return <Empty text="No logins yet." />;
   return (
-    <section className="rounded-md border bg-card p-6">
-      <h2 className="page-title mb-5 text-lg">Accounts</h2>
-      <div className="table-wrap">
-        {accounts.length ? (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Created</th>
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Password</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {accounts.map((a) => {
+            const isSelf = a.user_id === currentUserId;
+            const knownPassword = sessionPasswords[a.username];
+            const isRevealed = revealed[a.username] === true;
+            return (
+              <tr key={a.user_id}>
+                <td>
+                  <span className="font-semibold">{a.username}</span>
+                  {isSelf && (
+                    <span className="ml-2 text-[10px] font-bold text-muted-foreground">(YOU)</span>
+                  )}
+                </td>
+                <td>
+                  <RoleBadge role={a.role} />
+                </td>
+                <td>
+                  {knownPassword != null ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="font-mono text-xs">
+                        {isRevealed ? knownPassword : "••••••••"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onToggleReveal(a.username)}
+                        aria-label={isRevealed ? "Hide password" : "Show password"}
+                        aria-pressed={isRevealed}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        {isRevealed ? (
+                          <EyeOff className="size-4" aria-hidden="true" />
+                        ) : (
+                          <Eye className="size-4" aria-hidden="true" />
+                        )}
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Unavailable</span>
+                  )}
+                </td>
+                <td>
+                  {isSelf ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <select
+                      aria-label={`Change role for ${a.username}`}
+                      className="field w-auto"
+                      value={a.role}
+                      disabled={saving === a.user_id}
+                      onChange={(e) => onRequestRoleChange(a, e.target.value as "admin" | "staff")}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="staff">Staff</option>
+                    </select>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {accounts.map((a) => (
-                <tr key={a.username}>
-                  <td>{a.username}</td>
-                  <td className="capitalize">{a.role}</td>
-                  <td>{dateTimeOf(a.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <Empty text="No logins yet." />
-        )}
-      </div>
-    </section>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 function Settings() {
   const { user, role, patients } = useApp();
-  const [roles, setRoles] = useState<RoleRow[]>([]),
-    [logs, setLogs] = useState<AuditRow[]>([]),
-    [saving, setSaving] = useState("");
+  const [logs, setLogs] = useState<AuditRow[]>([]);
+  const [saving, setSaving] = useState("");
   const [accounts, setAccounts] = useState<AccountListRow[]>([]);
+  const [sessionPasswords, setSessionPasswords] = useState<Record<string, string>>({});
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [pendingChange, setPendingChange] = useState<{
-    target: RoleRow;
+    target: AccountListRow;
     next: "admin" | "staff";
   } | null>(null);
   const refreshAccounts = () => {
@@ -278,27 +354,33 @@ function Settings() {
   };
   useEffect(() => {
     if (role === "admin") {
-      void Promise.all([supabase.from("user_roles").select("*"), listUsernames()]).then(
-        ([{ data: roleRows }, loginRows]) => {
-          const usernameByUser = new Map((loginRows ?? []).map((l) => [l.user_id, l.username]));
-          setRoles(
-            (roleRows ?? []).map((r) => ({ ...r, username: usernameByUser.get(r.user_id) })),
-          );
-        },
-      );
+      refreshAccounts();
       void supabase
         .from("audit_logs")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(100)
         .then(({ data }) => setLogs(data ?? []));
-      refreshAccounts();
     }
+    // Session-only passwords never leave this component: they reset on
+    // navigation away from Settings, sign-out (which unmounts this tree),
+    // and page refresh, since nothing here persists to storage.
+    return () => {
+      setSessionPasswords({});
+      setRevealed({});
+    };
   }, [role]);
+  function handleCreated(username: string, password: string) {
+    setSessionPasswords((m) => ({ ...m, [username]: password }));
+    refreshAccounts();
+  }
+  function toggleReveal(username: string) {
+    setRevealed((m) => ({ ...m, [username]: !m[username] }));
+  }
   async function confirmChangeRole() {
     if (!pendingChange) return;
     const { target, next } = pendingChange;
-    setSaving(target.id);
+    setSaving(target.user_id);
     const result = await changeStaffRole({ data: { targetUserId: target.user_id, newRole: next } });
     setSaving("");
     setPendingChange(null);
@@ -306,7 +388,9 @@ function Settings() {
       toast.error(result.error);
       return;
     }
-    setRoles(roles.map((r) => (r.id === target.id ? { ...r, role: result.newRole } : r)));
+    setAccounts(
+      accounts.map((a) => (a.user_id === target.user_id ? { ...a, role: result.newRole } : a)),
+    );
     void supabase
       .from("audit_logs")
       .select("*")
@@ -340,53 +424,33 @@ function Settings() {
             become visible. An administrator must grant access to new accounts.
           </p>
         </section>
-        <section className="rounded-md border bg-card p-6">
-          <h2 className="page-title mb-5 text-lg">Staff Access</h2>
-          {role === "admin" ? (
-            <div className="space-y-2">
-              {roles.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex flex-wrap items-center justify-between gap-2 border-b py-3 text-xs"
-                >
-                  <div>
-                    <div className="font-bold">
-                      {r.user_id === user.id
-                        ? "You"
-                        : (r.username ?? `Unassigned login (${r.user_id.slice(0, 8)})`)}
-                    </div>
-                    <div className="mt-1 text-muted-foreground">{r.user_id}</div>
-                  </div>
-                  <select
-                    aria-label="Staff role"
-                    className="field w-auto"
-                    value={r.role}
-                    disabled={saving === r.id || r.user_id === user.id}
-                    onChange={(e) =>
-                      setPendingChange({ target: r, next: e.target.value as "admin" | "staff" })
-                    }
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="staff">Staff</option>
-                  </select>
-                </div>
-              ))}
-              <p className="pt-4 text-xs leading-5 text-muted-foreground">
-                Users must create their own account before an administrator can assign access.
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Only administrators can manage staff roles.
-            </p>
-          )}
-        </section>
+        {role === "admin" && <CreateLoginPanel onCreated={handleCreated} />}
       </div>
-      {role === "admin" && (
-        <div className="mt-8 grid gap-8 xl:grid-cols-2">
-          <CreateLoginPanel onCreated={refreshAccounts} />
-          <AccountsPanel accounts={accounts} />
-        </div>
+      {role === "admin" ? (
+        <section className="mt-8 rounded-md border bg-card p-6">
+          <h2 className="page-title mb-5 text-lg">Staff Access</h2>
+          <StaffAccessTable
+            accounts={accounts}
+            currentUserId={user.id}
+            sessionPasswords={sessionPasswords}
+            revealed={revealed}
+            onToggleReveal={toggleReveal}
+            saving={saving}
+            onRequestRoleChange={(target, next) => setPendingChange({ target, next })}
+          />
+          <p className="pt-4 text-xs leading-5 text-muted-foreground">
+            Users must create their own account before an administrator can assign access. Passwords
+            are shown only for logins created in this browser session and are cleared on sign-out or
+            refresh.
+          </p>
+        </section>
+      ) : (
+        <section className="mt-8 rounded-md border bg-card p-6">
+          <h2 className="page-title mb-5 text-lg">Staff Access</h2>
+          <p className="text-sm text-muted-foreground">
+            Only administrators can manage staff roles.
+          </p>
+        </section>
       )}
       {role === "admin" && (
         <section className="mt-8">
@@ -441,9 +505,8 @@ function Settings() {
             <AlertDialogDescription>
               {pendingChange && (
                 <>
-                  This changes{" "}
-                  <strong>{pendingChange.target.username ?? pendingChange.target.user_id}</strong>{" "}
-                  from <strong className="capitalize">{pendingChange.target.role}</strong> to{" "}
+                  This changes <strong>{pendingChange.target.username}</strong> from{" "}
+                  <strong className="capitalize">{pendingChange.target.role}</strong> to{" "}
                   <strong className="capitalize">{pendingChange.next}</strong>.
                 </>
               )}

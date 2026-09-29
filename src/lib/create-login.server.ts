@@ -89,7 +89,12 @@ export const listUsernames = createServerFn({ method: "GET" })
     return (data ?? []) as UsernameMapRow[];
   });
 
-export type AccountListRow = { username: string; role: AppRole; created_at: string };
+export type AccountListRow = {
+  user_id: string;
+  username: string;
+  role: AppRole;
+  created_at: string;
+};
 
 export const listAccounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -107,6 +112,7 @@ export const listAccounts = createServerFn({ method: "GET" })
     return (logins ?? [])
       .filter((l) => roleByUser.has(l.user_id as string))
       .map((l) => ({
+        user_id: l.user_id as string,
         username: l.username as string,
         created_at: l.created_at as string,
         role: roleByUser.get(l.user_id as string) as AppRole,
