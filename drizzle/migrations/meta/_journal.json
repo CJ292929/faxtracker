@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790651349451,
+      "tag": "0000_create_fax_tracker",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790651373355,
+      "tag": "0001_secure_patient_files",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790651670941,
+      "tag": "0002_restrict_patient_changes_to_admin",
+      "breakpoints": true
+    }
+  ]
+}

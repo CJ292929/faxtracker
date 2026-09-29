@@ -1,0 +1,5 @@
+# Production readiness for patient records
+
+This project is a functional administrative prototype, **not a claim of HIPAA compliance**. Demo records are synthetic and marked DEMO. Do not enter actual protected health information until your organization has completed its own security review and legal requirements.
+
+Before production use: obtain the appropriate business associate agreement and verify the hosting, database, storage, and email providers are covered; restrict account registration/invitations to authorized staff; enable MFA and enforce organization password/session policies; review row-level access and staff role assignment; set retention, backup, incident response, breach notification, and access review policies; review file handling, malware scanning, and download audit needs; verify encryption, logging retention, exports, and organizational training. The current audit log records record-level changes but not reads/downloads. Signed file links are short-lived. Confirm the final deployed configuration and perform a security assessment before use with real patients.

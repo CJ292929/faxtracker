@@ -1,0 +1,3 @@
+CREATE POLICY "Staff read patient files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'patient-documents' AND public.is_staff(auth.uid()));
+CREATE POLICY "Staff upload patient files" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'patient-documents' AND public.is_staff(auth.uid()));
+CREATE POLICY "Admins remove patient files" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'patient-documents' AND public.has_role(auth.uid(),'admin'));

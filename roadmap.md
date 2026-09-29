@@ -1,0 +1,4 @@
+- [x] Provision protected patient, document, fax attempt, file, role, and audit storage with demo records.
+- [x] Build patient-centered dashboard, tracking, reports, settings, and authentication.
+- [x] Verify public sign-in screen and page loading; document production security requirements.
+- [ ] Complete authenticated end-to-end workflow checks after an administrator account signs in.
