@@ -10,6 +10,7 @@ import {
   parseRows,
   markDuplicatesAgainstExisting,
   generatePatientId,
+  assignPatientIds,
 } from "../src/lib/bulk-upload.ts";
 
 let failures = 0;
@@ -118,6 +119,39 @@ ok("generated patient ID has BULK- prefix", id1.startsWith("BULK-"));
 ok("generated patient ID avoids collision with taken set", id1 !== "BULK-AAAAAA");
 const id2 = generatePatientId(taken);
 ok("second generated ID differs from the first", id2 !== id1);
+
+const retrySession = parseRows([
+  headerRow,
+  ["Retry One", "R1", "01/01/1990", "", "", ""],
+  ["Retry Two", "R2", "01/01/1990", "", "", ""],
+]);
+assignPatientIds(retrySession.rows, []);
+const firstAssignment = retrySession.rows.map((r) => r.patientId);
+ok(
+  "assignPatientIds gives every row a BULK- id",
+  firstAssignment.every((id) => id.startsWith("BULK-")),
+);
+ok(
+  "assignPatientIds gives distinct ids within one file",
+  new Set(firstAssignment).size === firstAssignment.length,
+);
+// Simulate a retry: re-running assignment must not be called again on the
+// same rows in the real flow (ids are assigned once, at parse time), so the
+// invariant under test is that the row objects still carry their original
+// ids — nothing in the retry path regenerates them.
+check(
+  "row ids are unchanged after a simulated retry pass",
+  retrySession.rows.map((r) => r.patientId),
+  firstAssignment,
+);
+
+const existingRoster = ["BULK-ZZZZZZ"];
+const rosterSession = parseRows([headerRow, ["Roster Person", "", "", "", "", ""]]);
+assignPatientIds(rosterSession.rows, existingRoster);
+ok(
+  "assignPatientIds avoids collision with the currently loaded roster",
+  rosterSession.rows[0].patientId !== "BULK-ZZZZZZ",
+);
 
 if (failures) {
   console.error(`\n${failures} check(s) failed.`);

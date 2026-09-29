@@ -8,13 +8,13 @@ import { useApp } from "@/lib/app-context";
 import { canManagePatients } from "@/lib/fax";
 import {
   TEMPLATE_HEADERS,
-  generatePatientId,
+  assignPatientIds,
   markDuplicatesAgainstExisting,
   type BulkRow,
 } from "@/lib/bulk-upload";
 import { parseUploadedFile } from "@/lib/bulk-upload-xlsx";
 
-type Outcome = "created" | "skipped" | "failed";
+type Outcome = "created" | "skipped" | "failed" | "conflict";
 type RowResult = { row: BulkRow; outcome: Outcome; detail: string; patientId?: string };
 type Step = "select" | "review" | "importing" | "results";
 
@@ -37,6 +37,10 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
         return;
       }
       markDuplicatesAgainstExisting(parsed.rows, patients);
+      assignPatientIds(
+        parsed.rows,
+        patients.map((p) => p.patient_id),
+      );
       setFileErrors([]);
       setRows(parsed.rows);
       setSelected(
@@ -76,6 +80,68 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
     });
   }
 
+  // Queries by the row's stable Patient ID to resolve an ambiguous insert
+  // response (lost network response, or a UNIQUE-constraint collision).
+  // Never overwrites: a mismatched occupant stops the row as a conflict
+  // instead of retrying or reporting success.
+  async function resolveAmbiguousInsert(row: BulkRow, reason: string): Promise<RowResult> {
+    const patientId = row.patientId;
+    const { data, error } = await supabase
+      .from("patients")
+      .select("first_name, last_name, date_of_birth")
+      .eq("patient_id", patientId)
+      .maybeSingle();
+    if (error) {
+      return { row, outcome: "failed", detail: `${reason}; verification failed: ${error.message}` };
+    }
+    if (!data) {
+      return {
+        row,
+        outcome: "failed",
+        detail: `${reason} Not yet created — retry will reuse Patient ID ${patientId}.`,
+      };
+    }
+    const matches =
+      data.first_name === row.first_name &&
+      data.last_name === row.last_name &&
+      data.date_of_birth === row.date_of_birth;
+    if (matches) {
+      return { row, outcome: "created", detail: "Verified as already created", patientId };
+    }
+    return {
+      row,
+      outcome: "conflict",
+      detail: `Patient ID ${patientId} already belongs to a different patient — stopped to avoid overwriting.`,
+    };
+  }
+
+  async function insertRow(row: BulkRow): Promise<RowResult> {
+    const patientId = row.patientId;
+    const { error, status } = await supabase.from("patients").insert({
+      first_name: row.first_name,
+      last_name: row.last_name,
+      patient_id: patientId,
+      date_of_birth: row.date_of_birth,
+      phone: row.phone || null,
+      insurance: row.insurance || null,
+      insurance_member_id: row.member_id || null,
+      referring_physician: row.referring_physician || null,
+    });
+    if (!error) return { row, outcome: "created", detail: "Imported", patientId };
+    // status 0 / empty code means the client never got a real server
+    // response (network drop, timeout) -- the insert may have committed.
+    if (status === 0 && !error.code) {
+      return resolveAmbiguousInsert(row, "Network error during insert.");
+    }
+    // A UNIQUE violation on patient_id means a row with this ID already
+    // exists -- either our own earlier attempt committed (retry-safe) or a
+    // genuine collision with a different patient.
+    if (error.code === "23505") {
+      return resolveAmbiguousInsert(row, "Patient ID already exists.");
+    }
+    return { row, outcome: "failed", detail: error.message };
+  }
+
   async function runImport(rowsToImport: BulkRow[]) {
     if (!canManagePatients(role)) {
       toast.error("Only admin or staff accounts can import patients.");
@@ -83,7 +149,6 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
     }
     setStep("importing");
     setBusy(true);
-    const taken = new Set(patients.map((p) => p.patient_id));
     const outcomes: RowResult[] = [];
     for (const row of rows) {
       if (!rowsToImport.includes(row)) {
@@ -94,19 +159,7 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
         });
         continue;
       }
-      const patientId = generatePatientId(taken);
-      const { error } = await supabase.from("patients").insert({
-        first_name: row.first_name,
-        last_name: row.last_name,
-        patient_id: patientId,
-        date_of_birth: row.date_of_birth,
-        phone: row.phone || null,
-        insurance: row.insurance || null,
-        insurance_member_id: row.member_id || null,
-        referring_physician: row.referring_physician || null,
-      });
-      if (error) outcomes.push({ row, outcome: "failed", detail: error.message });
-      else outcomes.push({ row, outcome: "created", detail: "Imported", patientId });
+      outcomes.push(await insertRow(row));
     }
     setResults(outcomes);
     setBusy(false);
@@ -127,6 +180,7 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
   const created = results.filter((r) => r.outcome === "created").length;
   const skipped = results.filter((r) => r.outcome === "skipped").length;
   const failed = results.filter((r) => r.outcome === "failed").length;
+  const conflicted = results.filter((r) => r.outcome === "conflict").length;
 
   return (
     <Modal title="Bulk Upload Patients" onClose={onClose}>
@@ -258,10 +312,11 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
 
       {step === "results" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <ReviewStat label="Created" value={created} tone="text-green-600" />
             <ReviewStat label="Skipped" value={skipped} />
             <ReviewStat label="Failed" value={failed} tone="text-destructive" />
+            <ReviewStat label="Conflict" value={conflicted} tone="text-amber-600" />
           </div>
           <div className="table-wrap max-h-96 overflow-y-auto">
             <table className="data-table">
@@ -282,7 +337,9 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
                       {r.outcome === "created" && (
                         <CheckCircle2 size={14} className="text-green-600" />
                       )}
-                      {r.outcome === "failed" && <XCircle size={14} className="text-destructive" />}
+                      {(r.outcome === "failed" || r.outcome === "conflict") && (
+                        <XCircle size={14} className="text-destructive" />
+                      )}
                       {r.outcome}
                     </td>
                     <td className="text-xs text-muted-foreground">{r.detail}</td>

@@ -25,6 +25,7 @@ export type BulkRow = {
   errors: string[];
   duplicateInFile: boolean;
   duplicateExisting: { id: string; patient_id: string; name: string } | null;
+  patientId: string;
 };
 
 export type ParseResult = { fileErrors: string[]; rows: BulkRow[] };
@@ -149,6 +150,7 @@ export function parseRows(aoa: unknown[][]): ParseResult {
       errors,
       duplicateInFile: false,
       duplicateExisting: null,
+      patientId: "",
     };
   });
   markDuplicatesInFile(rows);
@@ -217,4 +219,17 @@ export function generatePatientId(taken: Set<string>): string {
   } while (taken.has(id));
   taken.add(id);
   return id;
+}
+
+/**
+ * Assigns each row a Patient ID once, up front, so the same ID survives
+ * every retry in this upload session — retries must reuse it rather than
+ * minting a fresh one, or a lost insert response can create the same
+ * patient twice under different IDs.
+ */
+export function assignPatientIds(rows: BulkRow[], existingIds: Iterable<string>): void {
+  const taken = new Set(existingIds);
+  for (const row of rows) {
+    row.patientId = generatePatientId(taken);
+  }
 }
