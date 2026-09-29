@@ -22,6 +22,13 @@
       "when": 1790651670941,
       "tag": "0002_restrict_patient_changes_to_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790652000000,
+      "tag": "0003_remove_bootstrap_first_admin",
+      "breakpoints": true
     }
   ]
 }
