@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { loginWithUsername } from "./username-login.server";
 import type { Patient, Document, Attempt, FileRecord } from "./fax";
 type AppContext = {
   user: User;
@@ -114,37 +115,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     </Context.Provider>
   );
 }
+const GENERIC_LOGIN_ERROR = "Invalid username or password for this login type.";
+
 function AuthScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    const result = await supabase.auth.signInWithPassword({ email, password });
-    setMessage(result.error?.message ?? "");
-    setBusy(false);
-  }
-  async function google() {
-    setBusy(true);
-    try {
-      const { lovable } = await import("@/integrations/lovable/index");
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-      if (result.error) setMessage(result.error.message);
-    } catch {
-      setMessage("Google sign-in could not start.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const [portal, setPortal] = useState<"admin" | "staff" | null>(null);
+
+  if (!portal) return <PortalPicker onPick={setPortal} />;
+  return <LoginForm portal={portal} onBack={() => setPortal(null)} />;
+}
+
+function PortalPicker({ onPick }: { onPick: (p: "admin" | "staff") => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-5">
       <div className="w-full max-w-sm rounded-md border bg-card p-8 shadow-sm">
         <div className="mb-8 flex items-center gap-3">
-          <img src="/logo.png" alt="NYC Home Rehab" className="size-10 shrink-0 rounded object-contain" />
+          <img
+            src="/logo.png"
+            alt="NYC Home Rehab"
+            className="size-10 shrink-0 rounded object-contain"
+          />
           <div className="font-display text-sm font-extrabold leading-5 text-primary">
             NYC HOME REHAB
             <br />
@@ -153,17 +142,85 @@ function AuthScreen() {
         </div>
         <h1 className="page-title text-2xl">Welcome back</h1>
         <p className="mb-6 mt-1 text-sm text-muted-foreground">
-          Secure staff access to patient fax records.
+          Choose how you sign in to continue.
+        </p>
+        <div className="space-y-3">
+          <Button className="w-full" onClick={() => onPick("staff")}>
+            Staff Login
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => onPick("admin")}>
+            Admin Login
+          </Button>
+        </div>
+        <p className="mt-6 border-t pt-4 text-xs leading-5 text-muted-foreground">
+          For authorized staff only. Accounts are provisioned by an administrator; there is no
+          public sign-up. Do not enter real patient data until your organization has completed its
+          security and HIPAA review.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function LoginForm({ portal, onBack }: { portal: "admin" | "staff"; onBack: () => void }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await loginWithUsername({ data: { username, password, portal } });
+      if (!result.ok) {
+        setMessage(result.error);
+        return;
+      }
+      const { error } = await supabase.auth.setSession({
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+      });
+      if (error) setMessage(GENERIC_LOGIN_ERROR);
+    } catch {
+      setMessage(GENERIC_LOGIN_ERROR);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const label = portal === "admin" ? "Admin Login" : "Staff Login";
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-5">
+      <div className="w-full max-w-sm rounded-md border bg-card p-8 shadow-sm">
+        <div className="mb-8 flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="NYC Home Rehab"
+            className="size-10 shrink-0 rounded object-contain"
+          />
+          <div className="font-display text-sm font-extrabold leading-5 text-primary">
+            NYC HOME REHAB
+            <br />
+            <span className="font-medium text-muted-foreground">FAX TRACKER</span>
+          </div>
+        </div>
+        <h1 className="page-title text-2xl">{label}</h1>
+        <p className="mb-6 mt-1 text-sm text-muted-foreground">
+          Secure {portal} access to patient fax records.
         </p>
         <form onSubmit={submit} className="space-y-4">
           <label className="block">
-            <span className="field-label">Email address</span>
+            <span className="field-label">Username</span>
             <input
               className="field"
-              type="email"
+              type="text"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
             />
           </label>
           <label className="block">
@@ -171,6 +228,7 @@ function AuthScreen() {
             <input
               className="field"
               type="password"
+              autoComplete="current-password"
               required
               minLength={6}
               value={password}
@@ -183,16 +241,15 @@ function AuthScreen() {
             </p>
           )}
           <Button disabled={busy} className="w-full">
-            {busy ? "Please wait…" : "Sign in"}
+            {busy ? "Please wait…" : label}
           </Button>
         </form>
-        <Button variant="outline" onClick={google} disabled={busy} className="mt-3 w-full">
-          Continue with Google
+        <Button variant="link" onClick={onBack} disabled={busy} className="mt-1 w-full">
+          Back
         </Button>
         <p className="mt-6 border-t pt-4 text-xs leading-5 text-muted-foreground">
           For authorized staff only. Accounts are provisioned by an administrator; there is no
-          public sign-up. Do not enter real patient data until your organization has completed its
-          security and HIPAA review.
+          public sign-up.
         </p>
       </div>
     </div>

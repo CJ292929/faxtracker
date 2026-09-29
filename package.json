@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "verify:admin-bootstrap": "node scripts/verify-admin-bootstrap.mjs"
+    "verify:admin-bootstrap": "node scripts/verify-admin-bootstrap.mjs",
+    "test:role-boundary": "node --experimental-strip-types scripts/test-role-boundary.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
