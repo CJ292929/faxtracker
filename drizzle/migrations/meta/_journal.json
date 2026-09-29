@@ -43,6 +43,13 @@
       "when": 1790652400000,
       "tag": "0005_lock_down_user_logins_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790652500000,
+      "tag": "0006_staff_patient_writes_recoverable_delete",
+      "breakpoints": true
     }
   ]
 }

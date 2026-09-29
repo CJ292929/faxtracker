@@ -1,3 +1,5 @@
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 export type Patient = Database['public']['Tables']['patients']['Row'];
 export type Document = Database['public']['Tables']['documents']['Row'];
@@ -7,6 +9,14 @@ export const documentTypes = ['Initial Evaluation','Progress Note','Re-evaluatio
 export const receivedTypes = ['Signed Initial Evaluation','Signed Progress Note','Signed Re-evaluation','Signed Re-certification','Signed Discharge Note','Approved Authorization','Medical Necessity Documentation','Appeal Response','Other'];
 export const faxStatuses = ['Pending','Sent Successfully','Failed','No Answer','Busy','Wrong Number','Cancelled'];
 export const nameOf = (p: Patient) => `${p.first_name} ${p.last_name}`;
+export const canManagePatients = (role: string) => role === 'admin' || role === 'staff';
+export async function restorePatient(patient: Patient, role: string, refresh: () => Promise<void>) {
+  if (!canManagePatients(role)) { toast.error('Only admin or staff accounts can restore patients.'); return; }
+  const { error } = await supabase.from('patients').update({ deleted_at: null }).eq('id', patient.id);
+  if (error) { toast.error(error.message); return; }
+  toast.success('Patient restored.');
+  await refresh();
+}
 export const titleOf = (d: Document) => `${d.document_type}${d.document_number ? ` #${d.document_number}` : ''}`;
 export const dateOf = (date?: string | null) => date ? new Date(date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
 export const dateTimeOf = (date?: string | null) => date ? new Date(date).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '—';

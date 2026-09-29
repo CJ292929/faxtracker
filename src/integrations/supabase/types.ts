@@ -223,6 +223,7 @@ export type Database = {
           address: string | null
           created_at: string
           date_of_birth: string | null
+          deleted_at: string | null
           email: string | null
           first_name: string
           id: string
@@ -242,6 +243,7 @@ export type Database = {
           address?: string | null
           created_at?: string
           date_of_birth?: string | null
+          deleted_at?: string | null
           email?: string | null
           first_name: string
           id?: string
@@ -261,6 +263,7 @@ export type Database = {
           address?: string | null
           created_at?: string
           date_of_birth?: string | null
+          deleted_at?: string | null
           email?: string | null
           first_name?: string
           id?: string
