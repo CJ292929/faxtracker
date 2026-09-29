@@ -28,7 +28,7 @@ export const Route = createFileRoute("/settings")({
   }),
   component: Settings,
 });
-type RoleRow = { id: string; user_id: string; role: string };
+type RoleRow = { id: string; user_id: string; role: string; username: string | undefined };
 type AuditRow = {
   id: string;
   user_id: string | null;
@@ -262,10 +262,15 @@ function Settings() {
   };
   useEffect(() => {
     if (role === "admin") {
-      void supabase
-        .from("user_roles")
-        .select("*")
-        .then(({ data }) => setRoles(data ?? []));
+      void Promise.all([
+        supabase.from("user_roles").select("*"),
+        supabase.from("user_logins").select("user_id, username"),
+      ]).then(([{ data: roleRows }, { data: loginRows }]) => {
+        const usernameByUser = new Map(
+          (loginRows ?? []).map((l) => [l.user_id as string, l.username as string]),
+        );
+        setRoles((roleRows ?? []).map((r) => ({ ...r, username: usernameByUser.get(r.user_id) })));
+      });
       void supabase
         .from("audit_logs")
         .select("*")
@@ -275,15 +280,29 @@ function Settings() {
       refreshAccounts();
     }
   }, [role]);
-  async function changeRole(id: string, next: "admin" | "staff") {
-    setSaving(id);
-    const { error } = await supabase.from("user_roles").update({ role: next }).eq("id", id);
-    setSaving("");
+  async function changeRole(target: RoleRow, next: "admin" | "staff") {
+    setSaving(target.id);
+    const { error } = await supabase.from("user_roles").update({ role: next }).eq("id", target.id);
     if (error) {
+      setSaving("");
       toast.error(error.message);
       return;
     }
-    setRoles(roles.map((r) => (r.id === id ? { ...r, role: next } : r)));
+    // Best-effort audit trail: role changes previously left no record, which
+    // made an accidental change (wrong row, manual testing) unrecoverable to trace.
+    await supabase
+      .from("audit_logs")
+      .insert({
+        user_id: user.id,
+        action: "role_changed",
+        description: `Changed ${target.username ?? target.user_id} from ${target.role} to ${next}`,
+      })
+      .then(
+        () => {},
+        () => {},
+      );
+    setSaving("");
+    setRoles(roles.map((r) => (r.id === target.id ? { ...r, role: next } : r)));
     toast.success("Staff role updated.");
   }
   return (
@@ -322,7 +341,9 @@ function Settings() {
                 >
                   <div>
                     <div className="font-bold">
-                      {r.user_id === user.id ? "You" : `Staff account ${r.user_id.slice(0, 8)}`}
+                      {r.user_id === user.id
+                        ? "You"
+                        : (r.username ?? `Unassigned login (${r.user_id.slice(0, 8)})`)}
                     </div>
                     <div className="mt-1 text-muted-foreground">{r.user_id}</div>
                   </div>
@@ -331,7 +352,7 @@ function Settings() {
                     className="field w-auto"
                     value={r.role}
                     disabled={saving === r.id || r.user_id === user.id}
-                    onChange={(e) => changeRole(r.id, e.target.value as "admin" | "staff")}
+                    onChange={(e) => changeRole(r, e.target.value as "admin" | "staff")}
                   >
                     <option value="admin">Admin</option>
                     <option value="staff">Staff</option>
