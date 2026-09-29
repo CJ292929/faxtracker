@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "verify:admin-bootstrap": "node scripts/verify-admin-bootstrap.mjs",
-    "test:role-boundary": "node --experimental-strip-types scripts/test-role-boundary.mjs"
+    "test:role-boundary": "node --experimental-strip-types scripts/test-role-boundary.mjs",
+    "test:login-form-state": "node --experimental-strip-types scripts/test-login-form-state.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

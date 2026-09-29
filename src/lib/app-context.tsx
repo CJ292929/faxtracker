@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { loginWithUsername } from "./username-login.server";
+import { initialLoginFormState, toggleShowPassword } from "./login-form-state";
 import type { Patient, Document, Attempt, FileRecord } from "./fax";
 type AppContext = {
   user: User;
@@ -163,8 +165,8 @@ function PortalPicker({ onPick }: { onPick: (p: "admin" | "staff") => void }) {
 }
 
 function LoginForm({ portal, onBack }: { portal: "admin" | "staff"; onBack: () => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState(() => initialLoginFormState(portal));
+  const { username, password, showPassword } = form;
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -216,24 +218,44 @@ function LoginForm({ portal, onBack }: { portal: "admin" | "staff"; onBack: () =
             <span className="field-label">Username</span>
             <input
               className="field"
+              id={`${portal}-username`}
+              name={`${portal}-username`}
               type="text"
               autoComplete="username"
               required
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
             />
           </label>
           <label className="block">
             <span className="field-label">Password</span>
-            <input
-              className="field"
-              type="password"
-              autoComplete="current-password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <input
+                className="field"
+                style={{ paddingRight: "2.25rem" }}
+                id={`${portal}-password`}
+                name={`${portal}-password`}
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
+              />
+              <button
+                type="button"
+                onClick={() => setForm(toggleShowPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
           </label>
           {message && (
             <p role="status" className="text-xs text-primary">
