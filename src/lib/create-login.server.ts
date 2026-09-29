@@ -74,6 +74,21 @@ export const checkUsernameAvailable = createServerFn({ method: "POST" })
     return { available: !existing };
   });
 
+export type UsernameMapRow = { user_id: string; username: string };
+
+// user_logins grants were revoked for anon/authenticated (see
+// 0005_lock_down_user_logins_grants.sql), so the client can no longer read
+// usernames directly; the Staff Access panel needs this to label existing
+// roles by username instead of raw user ids.
+export const listUsernames = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<UsernameMapRow[]> => {
+    if (!(await adminOnly(context.userId))) return [];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin.from("user_logins").select("user_id, username");
+    return (data ?? []) as UsernameMapRow[];
+  });
+
 export type AccountListRow = { username: string; role: AppRole; created_at: string };
 
 export const listAccounts = createServerFn({ method: "GET" })

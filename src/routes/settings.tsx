@@ -12,6 +12,7 @@ import {
   createStaffOrAdminLogin,
   checkUsernameAvailable,
   listAccounts,
+  listUsernames,
   type AccountListRow,
 } from "@/lib/create-login.server";
 import { changeStaffRole } from "@/lib/change-role.server";
@@ -277,15 +278,14 @@ function Settings() {
   };
   useEffect(() => {
     if (role === "admin") {
-      void Promise.all([
-        supabase.from("user_roles").select("*"),
-        supabase.from("user_logins").select("user_id, username"),
-      ]).then(([{ data: roleRows }, { data: loginRows }]) => {
-        const usernameByUser = new Map(
-          (loginRows ?? []).map((l) => [l.user_id as string, l.username as string]),
-        );
-        setRoles((roleRows ?? []).map((r) => ({ ...r, username: usernameByUser.get(r.user_id) })));
-      });
+      void Promise.all([supabase.from("user_roles").select("*"), listUsernames()]).then(
+        ([{ data: roleRows }, loginRows]) => {
+          const usernameByUser = new Map((loginRows ?? []).map((l) => [l.user_id, l.username]));
+          setRoles(
+            (roleRows ?? []).map((r) => ({ ...r, username: usernameByUser.get(r.user_id) })),
+          );
+        },
+      );
       void supabase
         .from("audit_logs")
         .select("*")
