@@ -5,6 +5,7 @@ export type Patient = Database['public']['Tables']['patients']['Row'];
 export type Document = Database['public']['Tables']['documents']['Row'];
 export type Attempt = Database['public']['Tables']['fax_attempts']['Row'];
 export type FileRecord = Database['public']['Tables']['document_files']['Row'];
+export type Correction = Database['public']['Tables']['fax_attempt_corrections']['Row'];
 export const documentTypes = ['Initial Evaluation','Progress Note','Re-evaluation','Re-certification Progress Note','Discharge Note','Authorization Packet','Medical Necessity Packet','Appeal Packet'];
 export const receivedTypes = ['Signed Initial Evaluation','Signed Progress Note','Signed Re-evaluation','Signed Re-certification','Signed Discharge Note','Approved Authorization','Medical Necessity Documentation','Appeal Response','Other'];
 export const faxStatuses = ['Pending','Sent Successfully','Failed','No Answer','Busy','Wrong Number','Cancelled'];

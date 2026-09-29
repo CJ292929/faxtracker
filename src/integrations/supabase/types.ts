@@ -184,6 +184,7 @@ export type Database = {
           is_demo: boolean
           notes: string | null
           status: string
+          updated_at: string
         }
         Insert: {
           attempt_number: number
@@ -197,6 +198,7 @@ export type Database = {
           is_demo?: boolean
           notes?: string | null
           status: string
+          updated_at?: string
         }
         Update: {
           attempt_number?: number
@@ -210,6 +212,7 @@ export type Database = {
           is_demo?: boolean
           notes?: string | null
           status?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -217,6 +220,50 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fax_attempt_corrections: {
+        Row: {
+          after: Json
+          attempt_id: string
+          before: Json
+          corrected_at: string
+          corrected_by: string
+          corrected_by_username: string | null
+          created_at: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          after: Json
+          attempt_id: string
+          before: Json
+          corrected_at?: string
+          corrected_by: string
+          corrected_by_username?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+        }
+        Update: {
+          after?: Json
+          attempt_id?: string
+          before?: Json
+          corrected_at?: string
+          corrected_by?: string
+          corrected_by_username?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fax_attempt_corrections_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "fax_attempts"
             referencedColumns: ["id"]
           },
         ]
@@ -335,6 +382,29 @@ export type Database = {
           old_role: Database["public"]["Enums"]["app_role"]
           target_user_id: string
           target_username: string | null
+        }[]
+      }
+      correct_fax_attempt: {
+        Args: {
+          _attempt_id: string
+          _attempted_at: string
+          _confirmation_number: string | null
+          _expected_updated_at: string
+          _failure_reason: string | null
+          _notes: string | null
+          _reason: string
+          _status: string
+        }
+        Returns: {
+          attempt_number: number
+          attempted_at: string
+          confirmation_number: string | null
+          document_id: string
+          failure_reason: string | null
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
         }[]
       }
       has_role: {

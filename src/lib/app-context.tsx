@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { loginWithUsername } from "./username-login.server";
 import { initialLoginFormState, toggleShowPassword } from "./login-form-state";
-import type { Patient, Document, Attempt, FileRecord } from "./fax";
+import type { Patient, Document, Attempt, FileRecord, Correction } from "./fax";
 type AppContext = {
   user: User;
   role: string;
@@ -13,6 +13,7 @@ type AppContext = {
   documents: Document[];
   attempts: Attempt[];
   files: FileRecord[];
+  corrections: Correction[];
   loading: boolean;
   refresh: () => Promise<void>;
   search: string;
@@ -32,6 +33,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [files, setFiles] = useState<FileRecord[]>([]);
+  const [corrections, setCorrections] = useState<Correction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   useEffect(() => {
@@ -50,17 +52,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [p, d, a, f, r] = await Promise.all([
+    const [p, d, a, f, c, r] = await Promise.all([
       supabase.from("patients").select("*").order("last_name"),
       supabase.from("documents").select("*").order("created_at", { ascending: false }),
       supabase.from("fax_attempts").select("*").order("attempted_at", { ascending: false }),
       supabase.from("document_files").select("*").order("uploaded_at", { ascending: false }),
+      supabase.from("fax_attempt_corrections").select("*").order("corrected_at", { ascending: false }),
       supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
     ]);
     setPatients(p.data ?? []);
     setDocuments(d.data ?? []);
     setAttempts(a.data ?? []);
     setFiles(f.data ?? []);
+    setCorrections(c.data ?? []);
     setRole(r.data?.role ?? "");
     setLoading(false);
   }, [user]);
@@ -71,6 +75,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setDocuments([]);
       setAttempts([]);
       setFiles([]);
+      setCorrections([]);
       setRole("");
     }
   }, [user, refresh]);
@@ -107,6 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         documents,
         attempts,
         files,
+        corrections,
         loading,
         refresh,
         search,
