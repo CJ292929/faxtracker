@@ -144,9 +144,7 @@ function AuthScreen() {
     <div className="flex min-h-screen items-center justify-center bg-background p-5">
       <div className="w-full max-w-sm rounded-md border bg-card p-8 shadow-sm">
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded bg-primary text-primary-foreground">
-            +
-          </div>
+          <img src="/logo.png" alt="NYC Home Rehab" className="size-10 shrink-0 rounded object-contain" />
           <div className="font-display text-sm font-extrabold leading-5 text-primary">
             NYC HOME REHAB
             <br />
