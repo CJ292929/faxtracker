@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { adminOnly } from "./admin-guard.server";
 import {
   createLogin,
   normalizeUsername,
@@ -11,16 +12,6 @@ import {
 } from "./create-login-core";
 
 const FORBIDDEN = "Only administrators can perform this action.";
-
-async function adminOnly(callerUserId: string): Promise<boolean> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", callerUserId)
-    .maybeSingle();
-  return data?.role === "admin";
-}
 
 function isCreateLoginInput(data: unknown): data is CreateLoginInput {
   if (typeof data !== "object" || data === null) return false;

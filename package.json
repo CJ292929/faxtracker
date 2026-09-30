@@ -16,6 +16,8 @@
     "test:login-form-state": "node --experimental-strip-types scripts/test-login-form-state.mjs",
     "test:create-login": "node --experimental-strip-types scripts/test-create-login.mjs",
     "test:change-role": "node --experimental-strip-types scripts/test-change-role.mjs",
+    "test:reset-password": "node --experimental-strip-types scripts/test-reset-password.mjs",
+    "verify:reset-password-live": "node --experimental-strip-types scripts/verify-reset-password-live.mjs",
     "test:bulk-upload": "node --experimental-strip-types scripts/test-bulk-upload.mjs",
     "verify:bulk-upload-permissions-live": "node scripts/test-bulk-upload-permissions-live.mjs",
     "verify:bulk-upload-e2e-live": "node scripts/e2e-bulk-upload-live.mjs",

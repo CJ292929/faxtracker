@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Workspace } from "@/components/workspace";
 import { Heading, Empty } from "@/components/common";
@@ -15,6 +15,7 @@ import {
   type AccountListRow,
 } from "@/lib/create-login.server";
 import { changeStaffRole } from "@/lib/change-role.server";
+import { resetStaffPassword } from "@/lib/reset-password.server";
 import { USERNAME_RE } from "@/lib/username-login-core";
 import {
   AlertDialog,
@@ -26,6 +27,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
@@ -242,6 +251,173 @@ function CreateLoginPanel({
   );
 }
 
+function ResetPasswordDialog({
+  target,
+  onClose,
+  onReset,
+}: {
+  target: AccountListRow | null;
+  onClose: () => void;
+  onReset: (username: string, password: string) => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setPassword("");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setShowConfirm(false);
+    setMessage("");
+    setBusy(false);
+  }, [target]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy || !target) return;
+    setMessage("");
+    if (password.length < 8) {
+      setMessage("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await resetStaffPassword({
+        data: { targetUserId: target.user_id, password, confirmPassword },
+      });
+      if (!result.ok) {
+        setMessage(result.error);
+        return;
+      }
+      toast.success(`Password reset for "${result.username}".`);
+      onReset(result.username, password);
+    } catch {
+      setMessage("Unable to reset this password. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Set new password{target ? ` for ${target.username}` : ""}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <label className="block">
+            <span className="field-label">New Password</span>
+            <div className="relative">
+              <input
+                className="field"
+                style={{ paddingRight: "2.25rem" }}
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </label>
+          <label className="block">
+            <span className="field-label">Confirm Password</span>
+            <div className="relative">
+              <input
+                className="field"
+                style={{ paddingRight: "2.25rem" }}
+                type={showConfirm ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                aria-label={showConfirm ? "Hide password" : "Show password"}
+                aria-pressed={showConfirm}
+                className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                {showConfirm ? (
+                  <EyeOff className="size-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </label>
+          {message && (
+            <p role="status" className="text-xs text-destructive">
+              {message}
+            </p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CopyPasswordButton({ password }: { password: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopied(true);
+      toast.success("Password copied.");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Unable to copy password.");
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => void copy()}
+      aria-label="Copy password"
+      className="text-muted-foreground hover:text-foreground"
+    >
+      {copied ? (
+        <Check className="size-4" aria-hidden="true" />
+      ) : (
+        <Copy className="size-4" aria-hidden="true" />
+      )}
+    </button>
+  );
+}
+
 function StaffAccessTable({
   accounts,
   currentUserId,
@@ -250,6 +426,7 @@ function StaffAccessTable({
   onToggleReveal,
   saving,
   onRequestRoleChange,
+  onRequestPasswordReset,
 }: {
   accounts: AccountListRow[];
   currentUserId: string;
@@ -258,6 +435,7 @@ function StaffAccessTable({
   onToggleReveal: (username: string) => void;
   saving: string;
   onRequestRoleChange: (target: AccountListRow, next: "admin" | "staff") => void;
+  onRequestPasswordReset: (target: AccountListRow) => void;
 }) {
   if (!accounts.length) return <Empty text="No logins yet." />;
   return (
@@ -306,9 +484,17 @@ function StaffAccessTable({
                           <Eye className="size-4" aria-hidden="true" />
                         )}
                       </button>
+                      <CopyPasswordButton password={knownPassword} />
                     </span>
                   ) : (
-                    <span className="text-muted-foreground">Unavailable</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onRequestPasswordReset(a)}
+                    >
+                      Set New Password
+                    </Button>
                   )}
                 </td>
                 <td>
@@ -347,6 +533,7 @@ function Settings() {
     target: AccountListRow;
     next: "admin" | "staff";
   } | null>(null);
+  const [resetTarget, setResetTarget] = useState<AccountListRow | null>(null);
   const refreshAccounts = () => {
     void listAccounts()
       .then(setAccounts)
@@ -373,6 +560,11 @@ function Settings() {
   function handleCreated(username: string, password: string) {
     setSessionPasswords((m) => ({ ...m, [username]: password }));
     refreshAccounts();
+  }
+  function handlePasswordReset(username: string, password: string) {
+    setSessionPasswords((m) => ({ ...m, [username]: password }));
+    setRevealed((m) => ({ ...m, [username]: false }));
+    setResetTarget(null);
   }
   function toggleReveal(username: string) {
     setRevealed((m) => ({ ...m, [username]: !m[username] }));
@@ -437,11 +629,12 @@ function Settings() {
             onToggleReveal={toggleReveal}
             saving={saving}
             onRequestRoleChange={(target, next) => setPendingChange({ target, next })}
+            onRequestPasswordReset={(target) => setResetTarget(target)}
           />
           <p className="pt-4 text-xs leading-5 text-muted-foreground">
             Users must create their own account before an administrator can assign access. Passwords
-            are shown only for logins created in this browser session and are cleared on sign-out or
-            refresh.
+            are shown only for logins created or reset in this browser session and are cleared on
+            sign-out or refresh.
           </p>
         </section>
       ) : (
@@ -526,6 +719,11 @@ function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ResetPasswordDialog
+        target={resetTarget}
+        onClose={() => setResetTarget(null)}
+        onReset={handlePasswordReset}
+      />
     </Workspace>
   );
 }
