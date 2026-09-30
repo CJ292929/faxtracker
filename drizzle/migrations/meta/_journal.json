@@ -85,6 +85,13 @@
       "when": 1790730000000,
       "tag": "0011_correct_fax_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790784507749,
+      "tag": "0012_permanent_patient_delete",
+      "breakpoints": true
     }
   ]
 }

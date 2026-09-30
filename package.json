@@ -26,13 +26,16 @@
     "verify:document-fax-attempt-live": "node scripts/p3p5-document-fax-attempt-live.mjs",
     "verify:document-rls-boundary-live": "node scripts/p3p5-rls-boundary-live.mjs",
     "test:correct-attempt": "node --experimental-strip-types scripts/test-correct-attempt.mjs",
+    "test:delete-patient": "node --experimental-strip-types scripts/test-delete-patient.mjs",
     "verify:correct-attempt-audit": "node scripts/verify-correct-attempt-audit.mjs",
     "verify:correct-attempt-live": "node scripts/test-correct-attempt-live.mjs",
     "verify:correct-attempt-e2e-live": "node scripts/p3p6-correct-attempt-live.mjs",
     "verify:staff-access-live": "node scripts/p3p7-verify-staff-access-live.mjs",
     "verify:reset-password-ui-live": "node scripts/verify-reset-password-ui-live.mjs",
     "verify:patient-fields-and-md-live": "node scripts/p3p9-md-and-patient-fields-live.mjs",
-    "verify:per-document-md-live": "node scripts/p3p10-per-document-md-live.mjs"
+    "verify:per-document-md-live": "node scripts/p3p10-per-document-md-live.mjs",
+    "verify:patient-delete-live": "node scripts/p3p11-patient-delete-live.mjs",
+    "cleanup:patient-files": "node scripts/retry-patient-file-cleanup.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
