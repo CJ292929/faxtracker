@@ -18,6 +18,12 @@ export async function restorePatient(patient: Patient, role: string, refresh: ()
   toast.success('Patient restored.');
   await refresh();
 }
+export const mdSuggestions = (documents: Document[], patient?: Patient | null) => {
+  const names = new Set<string>();
+  if (patient?.referring_physician) names.add(patient.referring_physician);
+  for (const d of documents) if (d.md_name) names.add(d.md_name);
+  return Array.from(names).sort((a, b) => a.localeCompare(b));
+};
 export const titleOf = (d: Document) => `${d.document_type}${d.document_number ? ` #${d.document_number}` : ''}`;
 export const dateOf = (date?: string | null) => date ? new Date(date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
 export const dateTimeOf = (date?: string | null) => date ? new Date(date).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '—';
