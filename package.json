@@ -29,7 +29,8 @@
     "verify:correct-attempt-audit": "node scripts/verify-correct-attempt-audit.mjs",
     "verify:correct-attempt-live": "node scripts/test-correct-attempt-live.mjs",
     "verify:correct-attempt-e2e-live": "node scripts/p3p6-correct-attempt-live.mjs",
-    "verify:staff-access-live": "node scripts/p3p7-verify-staff-access-live.mjs"
+    "verify:staff-access-live": "node scripts/p3p7-verify-staff-access-live.mjs",
+    "verify:reset-password-ui-live": "node scripts/verify-reset-password-ui-live.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
