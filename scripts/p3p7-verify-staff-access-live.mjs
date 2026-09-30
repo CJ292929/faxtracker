@@ -133,7 +133,7 @@ async function cleanup() {
     await page.locator('label:has-text("Password") input').first().fill(staffPassword);
     await page.locator('label:has-text("Confirm Password") input').first().fill(staffPassword);
     await page.getByRole("button", { name: "Create Login" }).click();
-    await page.waitForTimeout(1500);
+    await staffTable.locator("tbody tr", { hasText: staffUsername }).waitFor({ timeout: 10000 });
     createdUserIds.push(
       (
         await admin
