@@ -182,6 +182,7 @@ export type Database = {
           failure_reason: string | null
           id: string
           is_demo: boolean
+          md_name: string | null
           notes: string | null
           status: string
           updated_at: string
@@ -196,6 +197,7 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           is_demo?: boolean
+          md_name?: string | null
           notes?: string | null
           status: string
           updated_at?: string
@@ -210,6 +212,7 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           is_demo?: boolean
+          md_name?: string | null
           notes?: string | null
           status?: string
           updated_at?: string
