@@ -648,7 +648,12 @@ function Settings() {
       {role === "admin" && (
         <section className="mt-8">
           <h2 className="page-title mb-4 text-lg">Audit Activity</h2>
-          <div className="table-wrap">
+          <div
+            className="table-wrap max-h-[360px] overflow-y-auto"
+            tabIndex={logs.length ? 0 : undefined}
+            role={logs.length ? "region" : undefined}
+            aria-label={logs.length ? "Audit activity log" : undefined}
+          >
             {logs.length ? (
               <table className="data-table">
                 <thead>
