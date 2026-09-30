@@ -331,6 +331,39 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_file_cleanup_queue: {
+        Row: {
+          attempts: number
+          done_at: string | null
+          id: string
+          last_attempted_at: string | null
+          last_error: string | null
+          patient_ref: string
+          queued_at: string
+          storage_path: string
+        }
+        Insert: {
+          attempts?: number
+          done_at?: string | null
+          id?: string
+          last_attempted_at?: string | null
+          last_error?: string | null
+          patient_ref: string
+          queued_at?: string
+          storage_path: string
+        }
+        Update: {
+          attempts?: number
+          done_at?: string | null
+          id?: string
+          last_attempted_at?: string | null
+          last_error?: string | null
+          patient_ref?: string
+          queued_at?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       user_logins: {
         Row: {
           created_at: string
@@ -405,6 +438,19 @@ export type Database = {
           notes: string | null
           status: string
           updated_at: string
+        }[]
+      }
+      delete_patient_permanently: {
+        Args: {
+          _expected_patient_code: string
+          _patient_id: string
+        }
+        Returns: {
+          attempts_deleted: number
+          documents_deleted: number
+          files_deleted: number
+          patient_id: string
+          storage_paths: string[] | null
         }[]
       }
       has_role: {
