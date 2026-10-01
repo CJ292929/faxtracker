@@ -92,6 +92,13 @@
       "when": 1790784507749,
       "tag": "0012_permanent_patient_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790800000000,
+      "tag": "0013_add_fax_attempt_md_name",
+      "breakpoints": true
     }
   ]
 }

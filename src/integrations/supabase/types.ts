@@ -427,6 +427,7 @@ export type Database = {
           _confirmation_number: string | null
           _expected_updated_at: string
           _failure_reason: string | null
+          _md_name: string | null
           _notes: string | null
           _reason: string
           _status: string
@@ -438,6 +439,7 @@ export type Database = {
           document_id: string
           failure_reason: string | null
           id: string
+          md_name: string | null
           notes: string | null
           status: string
           updated_at: string

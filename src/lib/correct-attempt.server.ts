@@ -17,7 +17,8 @@ function isCorrectAttemptInput(data: unknown): data is CorrectAttemptInput {
     typeof d["failureReason"] === "string" &&
     typeof d["confirmationNumber"] === "string" &&
     typeof d["notes"] === "string" &&
-    typeof d["reason"] === "string"
+    typeof d["reason"] === "string" &&
+    typeof d["mdName"] === "string"
   );
 }
 

@@ -7,6 +7,7 @@ export type CorrectAttemptInput = {
   confirmationNumber: string;
   notes: string;
   reason: string;
+  mdName: string;
 };
 
 export type CorrectAttemptResult =
@@ -21,6 +22,7 @@ export type CorrectAttemptResult =
       confirmationNumber: string | null;
       notes: string | null;
       updatedAt: string;
+      mdName: string | null;
     }
   | { ok: false; error: string };
 
@@ -40,6 +42,7 @@ export interface CorrectAttemptRpcClient {
       _confirmation_number: string | null;
       _notes: string | null;
       _reason: string;
+      _md_name: string | null;
     },
   ): PromiseLike<{
     data:
@@ -53,6 +56,7 @@ export interface CorrectAttemptRpcClient {
           confirmation_number: string | null;
           notes: string | null;
           updated_at: string;
+          md_name: string | null;
         }[]
       | null;
     error: { message: string } | null;
@@ -100,6 +104,7 @@ export async function correctFaxAttempt(
     _confirmation_number: data.confirmationNumber.trim() || null,
     _notes: data.notes.trim() || null,
     _reason: data.reason,
+    _md_name: data.mdName.trim() || null,
   });
   if (error) {
     return { ok: false, error: friendlyError(error.message) };
@@ -119,5 +124,6 @@ export async function correctFaxAttempt(
     confirmationNumber: row.confirmation_number,
     notes: row.notes,
     updatedAt: row.updated_at,
+    mdName: row.md_name,
   };
 }

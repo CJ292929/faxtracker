@@ -35,6 +35,7 @@
     "verify:patient-fields-and-md-live": "node scripts/p3p9-md-and-patient-fields-live.mjs",
     "verify:per-document-md-live": "node scripts/p3p10-per-document-md-live.mjs",
     "verify:patient-delete-live": "node scripts/p3p11-patient-delete-live.mjs",
+    "verify:p3p12-live": "node scripts/p3p12-patient-info-and-attempt-md-live.mjs",
     "cleanup:patient-files": "node scripts/retry-patient-file-cleanup.mjs"
   },
   "overrides": {
