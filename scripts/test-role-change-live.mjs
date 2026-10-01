@@ -13,7 +13,7 @@
 //     auth boundary: an anonymous direct RPC call, and a true two
 //     -connection concurrent "two admins demote each other" race.
 //
-// Requires LOVABLE_DB_MIGRATION_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+// Requires SUPABASE_DB_MIGRATION_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
 // SUPABASE_PUBLISHABLE_KEY in .env. Run with: node scripts/test-role-change-live.mjs
 import { readFileSync } from "node:fs";
 import postgres from "postgres";
@@ -37,7 +37,7 @@ function check(name, cond) {
 
 // ---------- A) direct-SQL, uncommitted transaction ----------
 async function runSqlChecks() {
-  const sql = postgres(env.LOVABLE_DB_MIGRATION_URL);
+  const sql = postgres(env.SUPABASE_DB_MIGRATION_URL);
   const admin1 = "a0000000-0000-0000-0000-0000000000a1";
   const admin2 = "a0000000-0000-0000-0000-0000000000a2";
   const staffX = "a0000000-0000-0000-0000-0000000000f1";

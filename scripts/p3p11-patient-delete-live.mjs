@@ -21,7 +21,7 @@
 // correct bucket succeeds and clears the queue row. Everything created here
 // is deleted again at the end regardless of outcome.
 //
-// Requires LOVABLE_DB_MIGRATION_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY in .env.
+// Requires SUPABASE_DB_MIGRATION_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY in .env.
 // Run with: node scripts/p3p11-patient-delete-live.mjs
 import { readFileSync } from "node:fs";
 import postgres from "postgres";
@@ -44,7 +44,7 @@ function check(name, cond) {
 }
 
 async function runSqlChecks() {
-  const sql = postgres(env.LOVABLE_DB_MIGRATION_URL);
+  const sql = postgres(env.SUPABASE_DB_MIGRATION_URL);
 
   const adminId = "c0000000-0000-0000-0000-0000000000a1";
   const staffId = "c0000000-0000-0000-0000-0000000000a2";

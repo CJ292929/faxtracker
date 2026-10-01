@@ -14,7 +14,7 @@
 // (*"staff-excluded" here means a role-less account; staff IS allowed to
 // correct attempts, same as staff can add them.)
 //
-// Requires LOVABLE_DB_MIGRATION_URL in .env.
+// Requires SUPABASE_DB_MIGRATION_URL in .env.
 // Run with: node scripts/test-correct-attempt-live.mjs
 import { readFileSync } from "node:fs";
 import postgres from "postgres";
@@ -36,7 +36,7 @@ function check(name, cond) {
 }
 
 async function run() {
-  const sql = postgres(env.LOVABLE_DB_MIGRATION_URL);
+  const sql = postgres(env.SUPABASE_DB_MIGRATION_URL);
 
   const adminId = "b0000000-0000-0000-0000-0000000000a1";
   const staffId = "b0000000-0000-0000-0000-0000000000a2";

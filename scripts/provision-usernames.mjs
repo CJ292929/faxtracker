@@ -2,7 +2,7 @@
 // One-time, reviewed provisioning step: links a normalized username to an
 // existing auth.users row via public.user_logins. Never creates users,
 // never changes passwords/roles/emails. Run manually against
-// LOVABLE_DB_MIGRATION_URL after migration 0004 has been applied.
+// SUPABASE_DB_MIGRATION_URL after migration 0004 has been applied.
 //
 // Usage:
 //   node scripts/provision-usernames.mjs --map=./local-only-map.json
@@ -33,9 +33,9 @@ for (const e of entries) {
   }
 }
 
-const url = process.env.LOVABLE_DB_MIGRATION_URL;
+const url = process.env.SUPABASE_DB_MIGRATION_URL;
 if (!url) {
-  console.error("LOVABLE_DB_MIGRATION_URL is not set.");
+  console.error("SUPABASE_DB_MIGRATION_URL is not set.");
   process.exit(1);
 }
 

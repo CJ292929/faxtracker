@@ -2,7 +2,7 @@
 // Read-only baseline inspection for P3-P6. Confirms the live schema matches
 // migrations 0000-0010 and records real/demo row counts before applying
 // migration 0011 (fax-attempt corrections).
-// Requires LOVABLE_DB_MIGRATION_URL in .env. Run with:
+// Requires SUPABASE_DB_MIGRATION_URL in .env. Run with:
 //   node scripts/p3p6-inspect-baseline.mjs
 import { readFileSync } from "node:fs";
 import postgres from "postgres";
@@ -17,7 +17,7 @@ const env = Object.fromEntries(
     }),
 );
 
-const sql = postgres(env.LOVABLE_DB_MIGRATION_URL);
+const sql = postgres(env.SUPABASE_DB_MIGRATION_URL);
 
 try {
   console.log("== columns: documents, fax_attempts, document_files ==");

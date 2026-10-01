@@ -21,12 +21,12 @@ Create a local `.env` (never committed) with these names, values from the
 - `LOVABLE_CRON_SECRET` — validates scheduled/cron request auth.
 - `LOVABLE_CRON_SECRET_PREVIOUS` — optional, allows in-flight rotation of the cron secret.
 
-Migrations under `drizzle/migrations` additionally read `LOVABLE_DB_MIGRATION_URL`
-when run via `drizzle-kit` (see `drizzle.config.ts`). This project has not applied
-migrations to the `iobrhrefxeirrmbnaiob` project yet — see the initial-admin
-provisioning note below before doing so.
+Migrations under `drizzle/migrations` additionally read `SUPABASE_DB_MIGRATION_URL`
+(the target project's Postgres connection string) when run via `drizzle-kit` (see
+`drizzle.config.ts`). See the initial-admin provisioning note below before
+applying migrations.
 
-Set all of the above (except `LOVABLE_DB_MIGRATION_URL`, which is a local/CI-only
+Set all of the above (except `SUPABASE_DB_MIGRATION_URL`, which is a local/CI-only
 migration credential) as Vercel Project → Settings → Environment Variables. Do not
 put `SUPABASE_SERVICE_ROLE_KEY` in a `VITE_`-prefixed variable or in any value that
 reaches the client bundle.
