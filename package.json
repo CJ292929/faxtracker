@@ -38,7 +38,8 @@
     "verify:p3p12-live": "node scripts/p3p12-patient-info-and-attempt-md-live.mjs",
     "cleanup:patient-files": "node scripts/retry-patient-file-cleanup.mjs",
     "test:delete-account": "node --experimental-strip-types scripts/test-delete-account.mjs",
-    "verify:delete-account-live": "node --experimental-strip-types scripts/p3p13-delete-account-live.mjs"
+    "verify:delete-account-live": "node --experimental-strip-types scripts/p3p13-delete-account-live.mjs",
+    "verify:delete-account-ui-live": "node --experimental-strip-types scripts/p3p13-delete-account-ui-live.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
