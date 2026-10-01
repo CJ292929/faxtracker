@@ -298,7 +298,8 @@ async function main() {
       await correctMdInput.fill(drFinal);
       await page.locator('textarea[name="reason"]').fill("P3-P12 live verification: correcting attempt MD");
       await page.getByRole("button", { name: "Save Correction" }).click();
-      await page.waitForTimeout(1000);
+      await page.waitForSelector("text=Correct attempt #1", { state: "detached", timeout: 15000 });
+      await page.waitForSelector(`text=MD: ${drFinal}`, { timeout: 15000 });
       bodyText = await page.locator("body").innerText();
       check("corrected attempt shows the new MD", bodyText.includes(`MD: ${drFinal}`));
       check("correction history is recorded for the attempt", bodyText.includes("Corrected by"));
