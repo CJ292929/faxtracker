@@ -184,6 +184,9 @@ export type Database = {
           is_demo: boolean
           md_name: string | null
           notes: string | null
+          recipient_fax: string | null
+          recipient_name: string | null
+          recipient_type: string | null
           status: string
           updated_at: string
         }
@@ -199,6 +202,9 @@ export type Database = {
           is_demo?: boolean
           md_name?: string | null
           notes?: string | null
+          recipient_fax?: string | null
+          recipient_name?: string | null
+          recipient_type?: string | null
           status: string
           updated_at?: string
         }
@@ -214,6 +220,9 @@ export type Database = {
           is_demo?: boolean
           md_name?: string | null
           notes?: string | null
+          recipient_fax?: string | null
+          recipient_name?: string | null
+          recipient_type?: string | null
           status?: string
           updated_at?: string
         }
@@ -430,6 +439,9 @@ export type Database = {
           _md_name: string | null
           _notes: string | null
           _reason: string
+          _recipient_fax: string | null
+          _recipient_name: string | null
+          _recipient_type: string | null
           _status: string
         }
         Returns: {
@@ -441,6 +453,9 @@ export type Database = {
           id: string
           md_name: string | null
           notes: string | null
+          recipient_fax: string | null
+          recipient_name: string | null
+          recipient_type: string | null
           status: string
           updated_at: string
         }[]

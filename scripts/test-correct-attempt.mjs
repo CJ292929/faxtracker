@@ -33,6 +33,10 @@ const baseInput = {
   confirmationNumber: "REF-1",
   notes: "corrected notes",
   reason: "Wrong status recorded originally",
+  mdName: "Dr. Corrected",
+  recipientType: "Insurance",
+  recipientName: "Corrected Insurer",
+  recipientFax: "555-0199",
 };
 
 async function run() {
@@ -53,6 +57,10 @@ async function run() {
             confirmation_number: "REF-1",
             notes: "corrected notes",
             updated_at: "2026-01-03T00:00:00.000Z",
+            md_name: baseInput.mdName,
+            recipient_type: baseInput.recipientType,
+            recipient_name: baseInput.recipientName,
+            recipient_fax: baseInput.recipientFax,
           },
         ],
         error: null,
@@ -70,6 +78,10 @@ async function run() {
       confirmationNumber: "REF-1",
       notes: "corrected notes",
       updatedAt: "2026-01-03T00:00:00.000Z",
+      mdName: baseInput.mdName,
+      recipientType: baseInput.recipientType,
+      recipientName: baseInput.recipientName,
+      recipientFax: baseInput.recipientFax,
     });
     await check("calls correct_fax_attempt with snake_case args", calls, [
       [
@@ -83,6 +95,10 @@ async function run() {
           _confirmation_number: "REF-1",
           _notes: "corrected notes",
           _reason: baseInput.reason,
+          _md_name: baseInput.mdName,
+          _recipient_type: baseInput.recipientType,
+          _recipient_name: baseInput.recipientName,
+          _recipient_fax: baseInput.recipientFax,
         },
       ],
     ]);
