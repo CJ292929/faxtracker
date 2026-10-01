@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, Copy, Check } from "lucide-react";
+import { Eye, EyeOff, Copy, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Workspace } from "@/components/workspace";
 import { Heading, Empty } from "@/components/common";
+import { Modal } from "@/components/forms";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
 import { dateTimeOf } from "@/lib/fax";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/create-login.server";
 import { changeStaffRole } from "@/lib/change-role.server";
 import { resetStaffPassword } from "@/lib/reset-password.server";
+import { deleteAccount } from "@/lib/delete-account.server";
 import { USERNAME_RE } from "@/lib/username-login-core";
 import {
   AlertDialog,
@@ -390,6 +392,95 @@ function ResetPasswordDialog({
   );
 }
 
+function DeleteAccountModal({
+  target,
+  onClose,
+  onDeleted,
+}: {
+  target: AccountListRow | null;
+  onClose: () => void;
+  onDeleted: (target: AccountListRow) => void;
+}) {
+  const [confirmText, setConfirmText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setConfirmText("");
+    setBusy(false);
+    setMessage("");
+  }, [target]);
+
+  if (!target) return null;
+  const matches = confirmText.trim() === target.username;
+
+  async function confirm() {
+    if (busy || !target || !matches) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await deleteAccount({
+        data: { targetUserId: target.user_id, confirmUsername: confirmText.trim() },
+      });
+      if (!result.ok) {
+        setMessage(result.error);
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`Account "${result.username}" permanently deleted.`);
+      onDeleted(target);
+    } catch {
+      const error = "Unable to delete this account. Please try again.";
+      setMessage(error);
+      toast.error(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title="Delete account permanently" onClose={onClose}>
+      <p className="text-sm">
+        Permanently delete <strong>{target.username}</strong> (
+        <span className="capitalize">{target.role}</span>)?
+      </p>
+      <p className="mt-2 text-sm text-destructive">
+        This cannot be undone. The account will immediately lose access and can no longer sign in or
+        continue any active session. Patient records, documents, fax attempts, and audit history are
+        not affected.
+      </p>
+      <label className="mt-5 block">
+        <span className="field-label">Type the username ({target.username}) to confirm</span>
+        <input
+          className="field"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          disabled={busy}
+          autoComplete="off"
+        />
+      </label>
+      {message && (
+        <p role="status" className="mt-2 text-xs text-destructive">
+          {message}
+        </p>
+      )}
+      <div className="mt-6 flex justify-end gap-2 border-t pt-5">
+        <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={busy || !matches}
+          onClick={() => void confirm()}
+        >
+          {busy ? "Deleting…" : "Delete Permanently"}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 function CopyPasswordButton({ password }: { password: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
@@ -427,6 +518,7 @@ function StaffAccessTable({
   saving,
   onRequestRoleChange,
   onRequestPasswordReset,
+  onRequestDelete,
 }: {
   accounts: AccountListRow[];
   currentUserId: string;
@@ -436,6 +528,7 @@ function StaffAccessTable({
   saving: string;
   onRequestRoleChange: (target: AccountListRow, next: "admin" | "staff") => void;
   onRequestPasswordReset: (target: AccountListRow) => void;
+  onRequestDelete: (target: AccountListRow) => void;
 }) {
   if (!accounts.length) return <Empty text="No logins yet." />;
   return (
@@ -501,16 +594,30 @@ function StaffAccessTable({
                   {isSelf ? (
                     <span className="text-muted-foreground">—</span>
                   ) : (
-                    <select
-                      aria-label={`Change role for ${a.username}`}
-                      className="field w-auto"
-                      value={a.role}
-                      disabled={saving === a.user_id}
-                      onChange={(e) => onRequestRoleChange(a, e.target.value as "admin" | "staff")}
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="staff">Staff</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <select
+                        aria-label={`Change role for ${a.username}`}
+                        className="field w-auto"
+                        value={a.role}
+                        disabled={saving === a.user_id}
+                        onChange={(e) =>
+                          onRequestRoleChange(a, e.target.value as "admin" | "staff")
+                        }
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="staff">Staff</option>
+                      </select>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        title="Delete account"
+                        aria-label={`Delete account ${a.username}`}
+                        onClick={() => onRequestDelete(a)}
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </Button>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -534,6 +641,7 @@ function Settings() {
     next: "admin" | "staff";
   } | null>(null);
   const [resetTarget, setResetTarget] = useState<AccountListRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AccountListRow | null>(null);
   const refreshAccounts = () => {
     void listAccounts()
       .then(setAccounts)
@@ -568,6 +676,24 @@ function Settings() {
   }
   function toggleReveal(username: string) {
     setRevealed((m) => ({ ...m, [username]: !m[username] }));
+  }
+  function handleDeleted(target: AccountListRow) {
+    setAccounts((list) => list.filter((a) => a.user_id !== target.user_id));
+    setSessionPasswords((m) => {
+      const { [target.username]: _removed, ...rest } = m;
+      return rest;
+    });
+    setRevealed((m) => {
+      const { [target.username]: _removed, ...rest } = m;
+      return rest;
+    });
+    setDeleteTarget(null);
+    void supabase
+      .from("audit_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .then(({ data }) => setLogs(data ?? []));
   }
   async function confirmChangeRole() {
     if (!pendingChange) return;
@@ -630,6 +756,7 @@ function Settings() {
             saving={saving}
             onRequestRoleChange={(target, next) => setPendingChange({ target, next })}
             onRequestPasswordReset={(target) => setResetTarget(target)}
+            onRequestDelete={(target) => setDeleteTarget(target)}
           />
           <p className="pt-4 text-xs leading-5 text-muted-foreground">
             Users must create their own account before an administrator can assign access. Passwords
@@ -729,6 +856,13 @@ function Settings() {
         onClose={() => setResetTarget(null)}
         onReset={handlePasswordReset}
       />
+      {deleteTarget && (
+        <DeleteAccountModal
+          target={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={handleDeleted}
+        />
+      )}
     </Workspace>
   );
 }

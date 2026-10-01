@@ -458,6 +458,17 @@ export type Database = {
           storage_paths: string[] | null
         }[]
       }
+      delete_staff_account: {
+        Args: {
+          _expected_username: string
+          _target_user_id: string
+        }
+        Returns: {
+          target_role: Database["public"]["Enums"]["app_role"] | null
+          target_user_id: string
+          target_username: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
