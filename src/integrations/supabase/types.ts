@@ -91,7 +91,10 @@ export type Database = {
           document_type: string
           id: string
           is_demo: boolean
+          md_fax: string | null
           md_name: string | null
+          md_npi: string | null
+          md_office_phone: string | null
           notes: string | null
           patient_id: string
           received: boolean
@@ -117,7 +120,10 @@ export type Database = {
           document_type: string
           id?: string
           is_demo?: boolean
+          md_fax?: string | null
           md_name?: string | null
+          md_npi?: string | null
+          md_office_phone?: string | null
           notes?: string | null
           patient_id: string
           received?: boolean
@@ -143,7 +149,10 @@ export type Database = {
           document_type?: string
           id?: string
           is_demo?: boolean
+          md_fax?: string | null
           md_name?: string | null
+          md_npi?: string | null
+          md_office_phone?: string | null
           notes?: string | null
           patient_id?: string
           received?: boolean
@@ -182,7 +191,10 @@ export type Database = {
           failure_reason: string | null
           id: string
           is_demo: boolean
+          md_fax: string | null
           md_name: string | null
+          md_npi: string | null
+          md_office_phone: string | null
           notes: string | null
           recipient_fax: string | null
           recipient_name: string | null
@@ -200,7 +212,10 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           is_demo?: boolean
+          md_fax?: string | null
           md_name?: string | null
+          md_npi?: string | null
+          md_office_phone?: string | null
           notes?: string | null
           recipient_fax?: string | null
           recipient_name?: string | null
@@ -218,7 +233,10 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           is_demo?: boolean
+          md_fax?: string | null
           md_name?: string | null
+          md_npi?: string | null
+          md_office_phone?: string | null
           notes?: string | null
           recipient_fax?: string | null
           recipient_name?: string | null
@@ -442,7 +460,10 @@ export type Database = {
           _confirmation_number: string | null
           _expected_updated_at: string
           _failure_reason: string | null
+          _md_fax: string | null
           _md_name: string | null
+          _md_npi: string | null
+          _md_office_phone: string | null
           _notes: string | null
           _reason: string
           _recipient_fax: string | null
@@ -457,7 +478,10 @@ export type Database = {
           document_id: string
           failure_reason: string | null
           id: string
+          md_fax: string | null
           md_name: string | null
+          md_npi: string | null
+          md_office_phone: string | null
           notes: string | null
           recipient_fax: string | null
           recipient_name: string | null

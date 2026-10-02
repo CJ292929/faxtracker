@@ -37,6 +37,9 @@ const baseInput = {
   recipientType: "Insurance",
   recipientName: "Corrected Insurer",
   recipientFax: "555-0199",
+  mdNpi: "1234567893",
+  mdOfficePhone: "555-0150",
+  mdFax: "555-0151",
 };
 
 async function run() {
@@ -61,6 +64,9 @@ async function run() {
             recipient_type: baseInput.recipientType,
             recipient_name: baseInput.recipientName,
             recipient_fax: baseInput.recipientFax,
+            md_npi: baseInput.mdNpi,
+            md_office_phone: baseInput.mdOfficePhone,
+            md_fax: baseInput.mdFax,
           },
         ],
         error: null,
@@ -82,6 +88,9 @@ async function run() {
       recipientType: baseInput.recipientType,
       recipientName: baseInput.recipientName,
       recipientFax: baseInput.recipientFax,
+      mdNpi: baseInput.mdNpi,
+      mdOfficePhone: baseInput.mdOfficePhone,
+      mdFax: baseInput.mdFax,
     });
     await check("calls correct_fax_attempt with snake_case args", calls, [
       [
@@ -99,9 +108,40 @@ async function run() {
           _recipient_type: baseInput.recipientType,
           _recipient_name: baseInput.recipientName,
           _recipient_fax: baseInput.recipientFax,
+          _md_npi: baseInput.mdNpi,
+          _md_office_phone: baseInput.mdOfficePhone,
+          _md_fax: baseInput.mdFax,
         },
       ],
     ]);
+  }
+
+  // Invalid MD NPI is rejected client-side without a network call.
+  {
+    let called = false;
+    const client = fakeRpc(async () => {
+      called = true;
+      return { data: null, error: null };
+    });
+    await check(
+      "non-10-digit MD NPI rejected without a call",
+      await correctFaxAttempt({ ...baseInput, mdNpi: "42" }, client),
+      { ok: false, error: "MD NPI must be exactly 10 digits." },
+    );
+    await check("no rpc call made for invalid MD NPI", called, false);
+  }
+
+  // Server-side MD NPI rejection (defense in depth, mirrors the DB CHECK).
+  {
+    const client = fakeRpc(async () => ({
+      data: null,
+      error: { message: "MD_NPI_INVALID: MD NPI must be exactly 10 digits" },
+    }));
+    await check(
+      "server-side MD NPI rejection mapped to friendly error",
+      await correctFaxAttempt(baseInput, client),
+      { ok: false, error: "MD NPI must be exactly 10 digits." },
+    );
   }
 
   // FORBIDDEN from the database (role-less/anonymous direct RPC calls that

@@ -11,6 +11,9 @@ export type CorrectAttemptInput = {
   recipientType: string;
   recipientName: string;
   recipientFax: string;
+  mdNpi: string;
+  mdOfficePhone: string;
+  mdFax: string;
 };
 
 export type CorrectAttemptResult =
@@ -29,6 +32,9 @@ export type CorrectAttemptResult =
       recipientType: string | null;
       recipientName: string | null;
       recipientFax: string | null;
+      mdNpi: string | null;
+      mdOfficePhone: string | null;
+      mdFax: string | null;
     }
   | { ok: false; error: string };
 
@@ -52,6 +58,9 @@ export interface CorrectAttemptRpcClient {
       _recipient_type: string | null;
       _recipient_name: string | null;
       _recipient_fax: string | null;
+      _md_npi: string | null;
+      _md_office_phone: string | null;
+      _md_fax: string | null;
     },
   ): PromiseLike<{
     data:
@@ -69,6 +78,9 @@ export interface CorrectAttemptRpcClient {
           recipient_type: string | null;
           recipient_name: string | null;
           recipient_fax: string | null;
+          md_npi: string | null;
+          md_office_phone: string | null;
+          md_fax: string | null;
         }[]
       | null;
     error: { message: string } | null;
@@ -84,6 +96,7 @@ function friendlyError(message: string): string {
   if (message.startsWith("REASON_REQUIRED")) return "A correction reason is required.";
   if (message.startsWith("FAILURE_REASON_REQUIRED"))
     return "A failure reason is required for Failed status.";
+  if (message.startsWith("MD_NPI_INVALID")) return "MD NPI must be exactly 10 digits.";
   if (message.startsWith("NOT_FOUND")) return "That fax attempt no longer exists.";
   if (message.startsWith("CONFLICT"))
     return "This attempt was updated by someone else. Reload and try again.";
@@ -106,6 +119,9 @@ export async function correctFaxAttempt(
   if (data.status === "Failed" && !data.failureReason.trim()) {
     return { ok: false, error: "A failure reason is required for Failed status." };
   }
+  if (data.mdNpi.trim() && !/^\d{10}$/.test(data.mdNpi.trim())) {
+    return { ok: false, error: "MD NPI must be exactly 10 digits." };
+  }
 
   const { data: rows, error } = await client.rpc("correct_fax_attempt", {
     _attempt_id: data.attemptId,
@@ -120,6 +136,9 @@ export async function correctFaxAttempt(
     _recipient_type: data.recipientType.trim() || null,
     _recipient_name: data.recipientName.trim() || null,
     _recipient_fax: data.recipientFax.trim() || null,
+    _md_npi: data.mdNpi.trim() || null,
+    _md_office_phone: data.mdOfficePhone.trim() || null,
+    _md_fax: data.mdFax.trim() || null,
   });
   if (error) {
     return { ok: false, error: friendlyError(error.message) };
@@ -143,5 +162,8 @@ export async function correctFaxAttempt(
     recipientType: row.recipient_type,
     recipientName: row.recipient_name,
     recipientFax: row.recipient_fax,
+    mdNpi: row.md_npi,
+    mdOfficePhone: row.md_office_phone,
+    mdFax: row.md_fax,
   };
 }

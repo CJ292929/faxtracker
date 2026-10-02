@@ -120,6 +120,20 @@
       "when": 1791000000000,
       "tag": "0016_add_referring_md_contact_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791100000000,
+      "tag": "0017_add_document_attempt_md_contact_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791200000000,
+      "tag": "0018_extend_correct_fax_attempt_md_contact",
+      "breakpoints": true
     }
   ]
 }
