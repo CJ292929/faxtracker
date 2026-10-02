@@ -8,6 +8,7 @@ import { useApp } from "@/lib/app-context";
 import { canManagePatients } from "@/lib/fax";
 import {
   TEMPLATE_HEADERS,
+  LEGACY_TEMPLATE_HEADERS,
   assignPatientIds,
   markDuplicatesAgainstExisting,
   normField,
@@ -90,7 +91,7 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
     const { data, error } = await supabase
       .from("patients")
       .select(
-        "first_name, last_name, date_of_birth, phone, insurance, insurance_member_id, referring_physician",
+        "first_name, last_name, date_of_birth, phone, insurance, insurance_member_id, referring_physician, referring_physician_npi, referring_physician_office_phone, referring_physician_fax",
       )
       .eq("patient_id", patientId)
       .maybeSingle();
@@ -114,7 +115,11 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
       normField(data.phone) === normField(row.phone) &&
       normField(data.insurance) === normField(row.insurance) &&
       normField(data.insurance_member_id) === normField(row.member_id) &&
-      normField(data.referring_physician) === normField(row.referring_physician);
+      normField(data.referring_physician) === normField(row.referring_physician) &&
+      normField(data.referring_physician_npi) === normField(row.referring_physician_npi) &&
+      normField(data.referring_physician_office_phone) ===
+        normField(row.referring_physician_office_phone) &&
+      normField(data.referring_physician_fax) === normField(row.referring_physician_fax);
     if (fieldsMatch) {
       return { row, outcome: "created", detail: "Verified as already created", patientId };
     }
@@ -136,6 +141,9 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
       insurance: row.insurance || null,
       insurance_member_id: row.member_id || null,
       referring_physician: row.referring_physician || null,
+      referring_physician_npi: row.referring_physician_npi || null,
+      referring_physician_office_phone: row.referring_physician_office_phone || null,
+      referring_physician_fax: row.referring_physician_fax || null,
     });
     if (!error) return { row, outcome: "created", detail: "Imported", patientId };
     // status 0 / empty code means the client never got a real server
@@ -198,7 +206,9 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Upload a completed copy of the patient bulk-upload template (.xlsx). Expected columns,
-            in order: <strong>{TEMPLATE_HEADERS.join(" | ")}</strong>.
+            in order: <strong>{TEMPLATE_HEADERS.join(" | ")}</strong>. A previously downloaded
+            six-column template (<strong>{LEGACY_TEMPLATE_HEADERS.join(" | ")}</strong>) is also
+            accepted — its Phone column is treated as Patient Phone.
           </p>
           {fileErrors.length > 0 && (
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
@@ -258,9 +268,12 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
                   <th>Name</th>
                   <th>Member ID</th>
                   <th>DOB</th>
-                  <th>Phone</th>
+                  <th>Patient Phone</th>
                   <th>Insurance</th>
                   <th>Referring MD</th>
+                  <th>Referring MD NPI</th>
+                  <th>Referring MD Office Number</th>
+                  <th>Referring MD Fax Number</th>
                   <th>Flags</th>
                 </tr>
               </thead>
@@ -282,6 +295,9 @@ export function BulkUploadModal({ onClose }: { onClose: () => void }) {
                     <td>{r.phone || "—"}</td>
                     <td>{r.insurance || "—"}</td>
                     <td>{r.referring_physician || "—"}</td>
+                    <td>{r.referring_physician_npi || "—"}</td>
+                    <td>{r.referring_physician_office_phone || "—"}</td>
+                    <td>{r.referring_physician_fax || "—"}</td>
                     <td className="text-xs">
                       {r.errors.map((e) => (
                         <div key={e} className="flex items-center gap-1 text-destructive">

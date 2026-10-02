@@ -298,6 +298,8 @@ export type Database = {
           phone: string | null
           referring_physician: string | null
           referring_physician_fax: string | null
+          referring_physician_npi: string | null
+          referring_physician_office_phone: string | null
           status: string
           updated_at: string
         }
@@ -318,6 +320,8 @@ export type Database = {
           phone?: string | null
           referring_physician?: string | null
           referring_physician_fax?: string | null
+          referring_physician_npi?: string | null
+          referring_physician_office_phone?: string | null
           status?: string
           updated_at?: string
         }
@@ -338,6 +342,8 @@ export type Database = {
           phone?: string | null
           referring_physician?: string | null
           referring_physician_fax?: string | null
+          referring_physician_npi?: string | null
+          referring_physician_office_phone?: string | null
           status?: string
           updated_at?: string
         }

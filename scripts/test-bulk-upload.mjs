@@ -5,6 +5,7 @@
 //   node --experimental-strip-types scripts/test-bulk-upload.mjs
 import {
   TEMPLATE_HEADERS,
+  LEGACY_TEMPLATE_HEADERS,
   validateHeaders,
   parseDob,
   parseRows,
@@ -32,11 +33,11 @@ function ok(name, cond) {
 check("valid headers pass", validateHeaders([...TEMPLATE_HEADERS]), []);
 ok(
   "wrong header order is rejected",
-  validateHeaders(["Member ID", "Name", "DOB", "Phone", "Insurance", "Referring MD"]).length > 0,
+  validateHeaders([...TEMPLATE_HEADERS].reverse()).length > 0,
 );
 ok(
   "missing column is rejected",
-  validateHeaders(["Name", "Member ID", "DOB", "Phone", "Insurance"]).length > 0,
+  validateHeaders(TEMPLATE_HEADERS.slice(0, 5)).length > 0,
 );
 ok("extra column is rejected", validateHeaders([...TEMPLATE_HEADERS, "Extra"]).length > 0);
 
@@ -51,7 +52,17 @@ ok("rejects pre-1900 date", !!parseDob("01/01/1850").error);
 const headerRow = [...TEMPLATE_HEADERS];
 const good = parseRows([
   headerRow,
-  ["John Smith", "M100", "03/14/1980", "555-1234", "Medicare", "Dr. Lee"],
+  [
+    "John Smith",
+    "M100",
+    "03/14/1980",
+    "555-1234",
+    "Medicare",
+    "Dr. Lee",
+    "1234567893",
+    "(555) 555-0100 ext. 2",
+    "555-555-0199",
+  ],
 ]);
 ok("valid row has no errors", good.rows[0].errors.length === 0);
 check(
@@ -60,6 +71,13 @@ check(
   ["John", "Smith"],
 );
 check("DOB normalized to ISO", good.rows[0].date_of_birth, "1980-03-14");
+check("NPI carried through", good.rows[0].referring_physician_npi, "1234567893");
+check(
+  "office number with extension carried through",
+  good.rows[0].referring_physician_office_phone,
+  "(555) 555-0100 ext. 2",
+);
+check("fax carried through", good.rows[0].referring_physician_fax, "555-555-0199");
 
 const badHeader = parseRows([["Name", "Wrong", "DOB", "Phone", "Insurance", "Referring MD"]]);
 ok(
@@ -70,29 +88,70 @@ ok(
 const noRows = parseRows([headerRow]);
 ok("no data rows is a file error", noRows.fileErrors.length > 0);
 
-const singleName = parseRows([headerRow, ["Madonna", "", "", "", "", ""]]);
+const singleName = parseRows([headerRow, ["Madonna", "", "", "", "", "", "", "", ""]]);
 ok(
   "single-word name is an error",
   singleName.rows[0].errors.some((e) => e.includes("first and last name")),
 );
 
-const missingName = parseRows([headerRow, ["", "M1", "", "", "", ""]]);
+const missingName = parseRows([headerRow, ["", "M1", "", "", "", "", "", "", ""]]);
 ok(
   "missing name is an error",
   missingName.rows[0].errors.some((e) => e.includes("Name is required")),
 );
 
+const badNpi = parseRows([
+  headerRow,
+  ["Bad Npi", "M1", "", "", "", "", "12345", "", ""],
+]);
+ok(
+  "non-10-digit NPI is an error",
+  badNpi.rows[0].errors.some((e) => e.includes("NPI") && e.includes("10 digits")),
+);
+const blankNpi = parseRows([headerRow, ["Blank Npi", "M1", "", "", "", "", "", "", ""]]);
+ok("blank NPI is not an error", blankNpi.rows[0].errors.length === 0);
+
+// --- Legacy six-column template ---
+const legacyHeaderRow = [...LEGACY_TEMPLATE_HEADERS];
+const legacy = parseRows([
+  legacyHeaderRow,
+  ["Legacy Patient", "M300", "03/14/1980", "555-9999", "Medicare", "Dr. Old"],
+]);
+ok("legacy header is accepted", legacy.fileErrors.length === 0);
+check("legacy Phone becomes Patient Phone", legacy.rows[0].phone, "555-9999");
+check("legacy row has empty NPI", legacy.rows[0].referring_physician_npi, "");
+check("legacy row has empty office number", legacy.rows[0].referring_physician_office_phone, "");
+check("legacy row has empty fax", legacy.rows[0].referring_physician_fax, "");
+
+const malformedHeader = parseRows([
+  ["Name", "Member ID", "DOB", "Phone", "Insurance", "Referring MD", "Extra Column"],
+]);
+ok(
+  "a header matching neither supported shape is rejected clearly",
+  malformedHeader.fileErrors.length > 0 && malformedHeader.rows.length === 0,
+);
+
 const dupInFile = parseRows([
   headerRow,
-  ["Jane Doe", "M200", "01/01/1990", "", "", ""],
-  ["Jane Doe", "M200", "01/01/1990", "", "", ""],
+  ["Jane Doe", "M200", "01/01/1990", "", "", "", "", "", ""],
+  ["Jane Doe", "M200", "01/01/1990", "", "", "", "", "", ""],
 ]);
 ok(
   "identical rows flagged as duplicate in file",
   dupInFile.rows[0].duplicateInFile && dupInFile.rows[1].duplicateInFile,
 );
 
-const tooManyRows = Array.from({ length: 501 }, (_, i) => [`Person ${i}`, "", "", "", "", ""]);
+const tooManyRows = Array.from({ length: 501 }, (_, i) => [
+  `Person ${i}`,
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+]);
 const overLimit = parseRows([headerRow, ...tooManyRows]);
 ok("over 500 rows is rejected", overLimit.fileErrors.length > 0);
 
@@ -107,7 +166,10 @@ const existing = [
     deleted_at: null,
   },
 ];
-const dupExisting = parseRows([headerRow, ["Jane Doe", "M200", "01/01/1990", "", "", ""]]);
+const dupExisting = parseRows([
+  headerRow,
+  ["Jane Doe", "M200", "01/01/1990", "", "", "", "", "", ""],
+]);
 markDuplicatesAgainstExisting(dupExisting.rows, existing);
 ok(
   "matches existing patient by member ID",
@@ -123,8 +185,8 @@ ok("second generated ID differs from the first", id2 !== id1);
 
 const retrySession = parseRows([
   headerRow,
-  ["Retry One", "R1", "01/01/1990", "", "", ""],
-  ["Retry Two", "R2", "01/01/1990", "", "", ""],
+  ["Retry One", "R1", "01/01/1990", "", "", "", "", "", ""],
+  ["Retry Two", "R2", "01/01/1990", "", "", "", "", "", ""],
 ]);
 assignPatientIds(retrySession.rows, []);
 const firstAssignment = retrySession.rows.map((r) => r.patientId);
@@ -147,7 +209,10 @@ check(
 );
 
 const existingRoster = ["BULK-ZZZZZZ"];
-const rosterSession = parseRows([headerRow, ["Roster Person", "", "", "", "", ""]]);
+const rosterSession = parseRows([
+  headerRow,
+  ["Roster Person", "", "", "", "", "", "", "", ""],
+]);
 assignPatientIds(rosterSession.rows, existingRoster);
 ok(
   "assignPatientIds avoids collision with the currently loaded roster",
